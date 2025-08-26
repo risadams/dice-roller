@@ -168,18 +168,9 @@ npm run demo
 
 This library is written in TypeScript and includes full type definitions. All classes and methods are properly typed for excellent IDE support and compile-time error checking.
 
-## Conversion Notes
-
-This TypeScript version is converted from the original C# implementation, maintaining API compatibility while leveraging TypeScript's features:
-
-- **Type safety**: All parameters and return values are properly typed
-- **Modern JavaScript**: Uses ES6+ features like arrow functions and destructuring
-- **Node.js compatibility**: Designed for Node.js environments
-- **Jest testing**: Comprehensive test suite using Jest framework
-
 ## License
 
-ISC
+MIT - see the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
@@ -192,8 +183,10 @@ ISC
 ## Changelog
 
 ### 1.0.0
-- Initial TypeScript conversion from C#
-- Full API compatibility with original implementation
-- Comprehensive test suite
-- TypeScript type definitions
-- Demo and documentation
+- Initial release of TypeScript dice rolling library
+- Complete API with Die, DiceExpression, DiceExpressionPart, and Roller classes
+- Advanced rolling mechanics (advantage/disadvantage, exploding dice, keep highest/lowest)
+- CLI interface with npx support
+- Comprehensive test suite with Jest
+- Statistical analysis capabilities
+- Full TypeScript support with type definitions
