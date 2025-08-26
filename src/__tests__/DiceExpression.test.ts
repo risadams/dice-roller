@@ -55,6 +55,64 @@ describe('DiceExpression', () => {
       expect(() => new DiceExpression('+3d6')).toThrow();
       expect(() => new DiceExpression('3d6+')).toThrow();
     });
+
+    it('should throw error for zero dice expressions', () => {
+      expect(() => new DiceExpression('0d6')).toThrow('At least one die is required, got 0 dice in: 0d6');
+      expect(() => new DiceExpression('0d20')).toThrow('At least one die is required, got 0 dice in: 0d20');
+      expect(() => new DiceExpression('2d6+0d4')).toThrow('At least one die is required, got 0 dice in: 0d4');
+    });
+
+    it('should throw error for negative dice expressions', () => {
+      // Note: negative dice counts will be parsed as operator + dice, causing structure error
+      expect(() => new DiceExpression('-1d6')).toThrow('Expression cannot start with an operator');
+      expect(() => new DiceExpression('-2d20')).toThrow('Expression cannot start with an operator');
+    });
+
+    it('should reject expressions that are too long to prevent ReDoS attacks', () => {
+      const longExpression = '9'.repeat(1001);
+      expect(() => new DiceExpression(longExpression)).toThrow('Dice expression too long (maximum 1000 characters)');
+    });
+
+    it('should handle potential ReDoS patterns efficiently', () => {
+      const start = Date.now();
+      
+      // This pattern could cause exponential backtracking with the old regex
+      const maliciousInput = '9'.repeat(100);
+      
+      try {
+        new DiceExpression(maliciousInput);
+      } catch (error) {
+        // Expected to throw an error for invalid input
+      }
+      
+      const elapsed = Date.now() - start;
+      
+      // Should complete very quickly (under 100ms even on slow systems)
+      expect(elapsed).toBeLessThan(100);
+    });
+
+    it('should handle complex malicious ReDoS patterns efficiently', () => {
+      const testCases = [
+        '9'.repeat(50),  // Many digits without 'd'
+        '9'.repeat(50) + 'x',  // Many digits followed by invalid character
+        '9'.repeat(20) + 'd' + '9'.repeat(20) + 'x',  // Almost valid dice notation
+      ];
+
+      testCases.forEach(testCase => {
+        const start = Date.now();
+        
+        try {
+          new DiceExpression(testCase);
+        } catch (error) {
+          // Expected to throw an error for invalid input
+        }
+        
+        const elapsed = Date.now() - start;
+        
+        // Each test should complete very quickly
+        expect(elapsed).toBeLessThan(50);
+      });
+    });
   });
 
   describe('evaluation', () => {
