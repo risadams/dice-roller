@@ -15,6 +15,31 @@ A sophisticated TypeScript dice rolling library for tabletop RPGs, games, and an
 - **Comprehensive test suite** with 100% coverage
 - **TypeScript support** with full type definitions
 
+## Try It Now with npx
+
+No installation required! Try the dice roller immediately:
+
+```bash
+# Quick dice rolls
+npx @risadams/dice-roller "3d6+5"
+npx @risadams/dice-roller roll d20
+npx @risadams/dice-roller "2d8+1d4-2"
+
+# Advanced mechanics
+npx @risadams/dice-roller advantage d20
+npx @risadams/dice-roller disadvantage d20
+npx @risadams/dice-roller exploding 3d6
+
+# Interactive demo
+npx @risadams/dice-roller demo
+
+# Statistical analysis
+npx @risadams/dice-roller stats "3d6"
+
+# Get help
+npx @risadams/dice-roller help
+```
+
 ## Installation
 
 ```bash
@@ -46,15 +71,18 @@ const abilityScores = roller.rollKeepHighest(4, 6, 3); // 4d6 drop lowest
 ### Roller Class
 
 #### Basic Rolling
+
 - `rollDie(sides: number): number` - Roll a single die
 - `rollDice(count: number, sides: number): number[]` - Roll multiple dice
 - `rollSum(count: number, sides: number): number` - Roll and sum multiple dice
 
 #### Expression Rolling
+
 - `rollExpression(expression: string): number` - Evaluate dice expression
 - `rollExpressionDetailed(expression: string)` - Get detailed results
 
 #### Advanced Rolling
+
 - `rollWithAdvantage(sides: number)` - Roll twice, take higher
 - `rollWithDisadvantage(sides: number)` - Roll twice, take lower
 - `rollKeepHighest(count: number, sides: number, keep: number)` - Drop lowest dice
@@ -62,6 +90,7 @@ const abilityScores = roller.rollKeepHighest(4, 6, 3); // 4d6 drop lowest
 - `rollExploding(count: number, sides: number, maxExplosions?: number)` - Reroll on max
 
 #### Utilities
+
 - `rollStandard()` - Roll standard RPG dice set
 - `getStatistics(expression: string, samples: number)` - Generate statistics
 
@@ -98,6 +127,7 @@ The library supports mathematical expressions with dice notation:
 ## Examples
 
 ### Character Creation (D&D 5e)
+
 ```typescript
 const roller = new Roller();
 
@@ -111,6 +141,7 @@ console.log(`Attack: ${attack.result} (rolled: ${attack.rolls})`);
 ```
 
 ### Damage Calculation
+
 ```typescript
 const roller = new Roller();
 
@@ -124,6 +155,7 @@ const healingPotion = roller.rollExpression('2d4+2');
 ```
 
 ### Statistics and Analysis
+
 ```typescript
 const roller = new Roller();
 
@@ -135,6 +167,7 @@ console.log(`Standard deviation: ${stats.standardDeviation.toFixed(2)}`);
 ```
 
 ### Custom Random Function
+
 ```typescript
 import { Roller } from 'roller';
 
@@ -148,11 +181,13 @@ console.log(roller.rollDie(6)); // Always returns 4
 ## Development
 
 ### Building
+
 ```bash
 npm run build
 ```
 
 ### Testing
+
 ```bash
 npm test
 npm run test:watch
@@ -160,6 +195,7 @@ npm run test:coverage
 ```
 
 ### Demo
+
 ```bash
 npm run demo
 ```
@@ -183,6 +219,7 @@ MIT - see the [LICENSE](LICENSE) file for details.
 ## Changelog
 
 ### 1.0.0
+
 - Initial release of TypeScript dice rolling library
 - Complete API with Die, DiceExpression, DiceExpressionPart, and Roller classes
 - Advanced rolling mechanics (advantage/disadvantage, exploding dice, keep highest/lowest)
