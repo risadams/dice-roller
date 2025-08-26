@@ -1,0 +1,52 @@
+{
+  "name": "@risadams/dice-roller",
+  "version": "1.0.0",
+  "description": "Elegant TypeScript dice rolling library for tabletop RPGs, games, and applications requiring dice mechanics",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "dice-roller": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "demo": "ts-node src/demo.ts",
+    "dev": "ts-node src/index.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "dice",
+    "rolling",
+    "games",
+    "random",
+    "typescript",
+    "dice-roller",
+    "aleara",
+    "probability",
+    "rpg"
+  ],
+  "author": "risadams",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/risadams/dice-roller.git"
+  },
+  "homepage": "https://github.com/risadams/dice-roller#readme",
+  "bugs": {
+    "url": "https://github.com/risadams/dice-roller/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.3.0",
+    "jest": "^30.0.5",
+    "ts-jest": "^29.4.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
