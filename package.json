@@ -30,7 +30,7 @@
   "author": "risadams",
   "repository": {
     "type": "git",
-    "url": "https://github.com/risadams/dice-roller.git"
+    "url": "git@github.com:risadams/dice-roller.git"
   },
   "homepage": "https://github.com/risadams/dice-roller#readme",
   "bugs": {
