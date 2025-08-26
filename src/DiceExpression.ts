@@ -19,11 +19,17 @@ export class DiceExpression {
   public parse(expression: string): void {
     this.parts = [];
     
+    // Validate input length to prevent ReDoS attacks
+    if (expression.length > 1000) {
+      throw new Error('Dice expression too long (maximum 1000 characters)');
+    }
+    
     // Remove spaces and convert to lowercase
     const cleanExpression = expression.replace(/\s/g, '').toLowerCase();
     
     // Regular expression to match dice notation, operators, and constants
-    const regex = /(\d*d\d+|[+\-*/]|\d+)/g;
+    // Fixed to avoid ReDoS: split \d*d\d+ into \d+d\d+ and d\d+ to eliminate ambiguity
+    const regex = /(\d+d\d+|d\d+|[+\-*/]|\d+)/g;
     const matches = cleanExpression.match(regex);
     
     if (!matches || matches.join('') !== cleanExpression) {
@@ -31,7 +37,7 @@ export class DiceExpression {
     }
 
     for (const match of matches) {
-      if (match.match(/^\d*d\d+$/)) {
+      if (match.match(/^(\d+d\d+|d\d+)$/)) {
         // Dice notation (e.g., "3d6" or "d20")
         const [countStr, sidesStr] = match.split('d');
         const count = countStr === '' ? 1 : parseInt(countStr, 10);
