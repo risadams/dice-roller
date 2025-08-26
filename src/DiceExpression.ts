@@ -44,6 +44,9 @@ export class DiceExpression {
         const sides = parseInt(sidesStr, 10);
         
         if (isNaN(count) || isNaN(sides) || count <= 0 || sides <= 0) {
+          if (count <= 0) {
+            throw new Error(`At least one die is required, got ${count} dice in: ${match}`);
+          }
           throw new Error(`Invalid dice notation: ${match}`);
         }
         

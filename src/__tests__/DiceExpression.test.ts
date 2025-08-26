@@ -56,6 +56,18 @@ describe('DiceExpression', () => {
       expect(() => new DiceExpression('3d6+')).toThrow();
     });
 
+    it('should throw error for zero dice expressions', () => {
+      expect(() => new DiceExpression('0d6')).toThrow('At least one die is required, got 0 dice in: 0d6');
+      expect(() => new DiceExpression('0d20')).toThrow('At least one die is required, got 0 dice in: 0d20');
+      expect(() => new DiceExpression('2d6+0d4')).toThrow('At least one die is required, got 0 dice in: 0d4');
+    });
+
+    it('should throw error for negative dice expressions', () => {
+      // Note: negative dice counts will be parsed as operator + dice, causing structure error
+      expect(() => new DiceExpression('-1d6')).toThrow('Expression cannot start with an operator');
+      expect(() => new DiceExpression('-2d20')).toThrow('Expression cannot start with an operator');
+    });
+
     it('should reject expressions that are too long to prevent ReDoS attacks', () => {
       const longExpression = '9'.repeat(1001);
       expect(() => new DiceExpression(longExpression)).toThrow('Dice expression too long (maximum 1000 characters)');
