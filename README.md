@@ -373,6 +373,14 @@ MIT - see the [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 1.1.1
+
+- **NEW**: CLI support for Scrum planning dice (`npx @risadams/dice-roller scrum`)
+- **NEW**: CLI support for Fibonacci dice (`npx @risadams/dice-roller fibonacci`)
+- **PERFORMANCE**: Optimized custom dice value processing with single-pass algorithms
+- **PERFORMANCE**: Improved statistics calculation performance for large datasets
+- Enhanced CLI help documentation with custom dice examples
+
 ### 1.1.0
 
 - **NEW**: Custom dice with user-defined values for each side
