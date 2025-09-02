@@ -2,8 +2,9 @@
 
 import { Roller } from './Roller';
 import { DiceExpression } from './DiceExpression';
+import { DicePresets } from './CustomDie';
 
-const version = '1.0.0';
+const version = '1.1.1';
 
 function showHelp() {
   console.log(`
@@ -172,6 +173,34 @@ function showStats(expression: string) {
   }
 }
 
+function rollScrumDie() {
+  try {
+    const scrumDie = DicePresets.createScrumPlanningDie();
+    const result = scrumDie.roll();
+    
+    console.log(`🎯 Rolling Scrum Planning Die: ${result}`);
+    console.log(`📊 Possible values: ${scrumDie.getPossibleValues().join(', ')}`);
+    console.log(`📈 Perfect for Scrum planning poker sessions!`);
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
+function rollFibonacciDie() {
+  try {
+    const fibDie = DicePresets.createFibonacciDie();
+    const result = fibDie.roll();
+    
+    console.log(`🔢 Rolling Fibonacci Die: ${result}`);
+    console.log(`📊 Possible values: ${fibDie.getPossibleValues().join(', ')}`);
+    console.log(`📈 Fibonacci sequence perfect for story point estimation!`);
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
 function runDemo() {
   console.log('🎲 Dice Roller Interactive Demo');
   console.log('='.repeat(50));
@@ -269,6 +298,15 @@ switch (command) {
       process.exit(1);
     }
     showStats(args[1]);
+    break;
+    
+  case 'scrum':
+    rollScrumDie();
+    break;
+    
+  case 'fibonacci':
+  case 'fib':
+    rollFibonacciDie();
     break;
     
   default:
