@@ -54,7 +54,7 @@ npm install @risadams/dice-roller
 ## Quick Start
 
 ```typescript
-import { Roller } from '@risadams/dice-roller';
+import { Roller, CustomDie, DicePresets } from '@risadams/dice-roller';
 
 const roller = new Roller();
 
@@ -65,6 +65,31 @@ const damage = roller.rollSum(3, 6); // 3d6 damage
 // Expression rolling
 const attack = roller.rollExpression('1d20+5');
 const fireball = roller.rollExpression('8d6');
+
+// Custom dice
+const customDie = new CustomDie([2, 4, 6, 8, 10]);
+const customRolls = roller.rollCustomDice(customDie, 3);
+
+// Fibonacci die for Scrum planning
+const fibDie = DicePresets.createFibonacciDie(8);
+const storyPoints = fibDie.roll(); // Returns: 0, 1, 1, 2, 3, 5, 8, or 13
+
+// Scrum planning with actual "?" character
+const scrumDie = DicePresets.createScrumPlanningDie();
+const estimate = scrumDie.roll(); // Returns: 0, 1, 2, 3, 5, 8, 13, 21, or "?"
+
+// Text-based dice
+const coinDie = DicePresets.createCoinDie();
+const coinFlip = coinDie.roll(); // Returns: "Heads" or "Tails"
+
+const magic8Ball = DicePresets.createMagic8BallDie();
+const answer = magic8Ball.roll(); // Returns various text responses
+
+// Weighted dice
+const lootDie = DicePresets.createWeightedDie([
+  { value: 'Common', weight: 5 },
+  { value: 'Rare', weight: 1 }
+]); // 83.3% chance of "Common", 16.7% chance of "Rare"
 
 // Advanced mechanics
 const advantageRoll = roller.rollWithAdvantage(20);
@@ -199,6 +224,75 @@ const criticalHit = roller.rollExpression('2d8+3'); // Double dice on crit
 // Spell damage
 const fireball = roller.rollExpression('8d6');
 const healingPotion = roller.rollExpression('2d4+2');
+```
+
+### Custom Dice for Scrum Planning
+
+```typescript
+const roller = new Roller();
+
+// Create a Fibonacci die for story point estimation
+const fibDie = DicePresets.createFibonacciDie(8);
+console.log(`Story points: ${fibDie.roll()}`); // 0, 1, 1, 2, 3, 5, 8, or 13
+
+// Standard Scrum planning poker with actual "?" character
+const scrumDie = DicePresets.createScrumPlanningDie();
+const estimate = scrumDie.roll();
+console.log(`Estimate: ${estimate}`); // Could be 0, 1, 2, 3, 5, 8, 13, 21, or "?"
+
+// Analyze the distribution
+const stats = roller.getCustomDieStatistics(fibDie, 1000);
+if (stats.expectedValue !== null) {
+  console.log(`Average story points: ${stats.expectedValue.toFixed(1)}`);
+}
+```
+
+### Text-Based Dice
+
+```typescript
+const roller = new Roller();
+
+// Simple Yes/No decision
+const yesNoDie = DicePresets.createTextDie(['Yes', 'No', 'Maybe']);
+console.log(`Decision: ${yesNoDie.roll()}`);
+
+// Magic 8-Ball style responses
+const magic8Ball = DicePresets.createMagic8BallDie();
+console.log(`Magic 8-Ball says: "${magic8Ball.roll()}"`);
+
+// Coin flip
+const coinDie = DicePresets.createCoinDie();
+console.log(`Coin flip: ${coinDie.roll()}`);
+
+// Game loot with weighted text values
+const lootDie = DicePresets.createWeightedDie([
+  { value: 'Common', weight: 5 },
+  { value: 'Uncommon', weight: 3 },
+  { value: 'Rare', weight: 2 },
+  { value: 'Legendary', weight: 1 }
+]);
+console.log(`Loot rarity: ${lootDie.roll()}`);
+```
+
+### Mixed Numeric and Non-Numeric Dice
+
+```typescript
+// Custom die with mixed values
+const mixedDie = new CustomDie([1, 2, 'Skip', 4, 'Double']);
+console.log(`Roll result: ${mixedDie.roll()}`);
+
+// Scrum planning with actual "?" for unknown complexity
+const scrumDie = DicePresets.createScrumPlanningDie();
+const estimate = scrumDie.roll();
+console.log(`Story points: ${estimate}`); // Could be number or "?"
+
+// Statistics handle mixed types gracefully
+const stats = roller.getCustomDieStatistics(scrumDie, 1000);
+console.log(`Has numeric values: ${stats.hasNumericValues}`);
+console.log(`Has non-numeric values: ${stats.hasNonNumericValues}`);
+if (stats.expectedValue !== null) {
+  console.log(`Expected value of numeric faces: ${stats.expectedValue}`);
+}
 ```
 
 ### Statistics and Analysis
