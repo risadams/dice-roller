@@ -272,12 +272,11 @@ export class Roller {
       const numericResults = results.filter(r => typeof r === 'number') as number[];
       
       if (numericResults.length > 0) {
-        const localMean = numericResults.reduce((sum, val) => sum + val, 0) / numericResults.length;
-        mean = localMean;
+        mean = numericResults.reduce((sum, val) => sum + val, 0) / numericResults.length;
         min = Math.min(...numericResults);
         max = Math.max(...numericResults);
         
-        const variance = numericResults.reduce((sum, val) => sum + Math.pow(val - localMean, 2), 0) / numericResults.length;
+        const variance = numericResults.reduce((sum, val) => sum + Math.pow(val - mean!, 2), 0) / numericResults.length;
         standardDeviation = Math.sqrt(variance);
       }
       
