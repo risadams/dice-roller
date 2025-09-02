@@ -222,8 +222,12 @@ export class DicePresets {
 
   /**
    * Create a die with geometric progression
+   * @param start The starting value of the progression
+   * @param ratio The common ratio between terms
+   * @param count The number of terms in the progression
+   * @param roundValues If true, values are rounded to nearest integer (default: true). If false, fractional values are preserved.
    */
-  public static createGeometricDie(start: number, ratio: number, count: number): CustomDie<number> {
+  public static createGeometricDie(start: number, ratio: number, count: number, roundValues: boolean = true): CustomDie<number> {
     if (count <= 0) {
       throw new Error("Count must be positive");
     }
@@ -234,7 +238,7 @@ export class DicePresets {
     const values: number[] = [];
     let current = start;
     for (let i = 0; i < count; i++) {
-      values.push(Math.round(current));
+      values.push(roundValues ? Math.round(current) : current);
       current *= ratio;
     }
 

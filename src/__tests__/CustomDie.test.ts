@@ -349,6 +349,11 @@ describe('DicePresets', () => {
     it('should throw error for invalid count', () => {
       expect(() => DicePresets.createGeometricDie(1, 2, 0)).toThrow('Count must be positive');
     });
+
+    it('should handle fractional values when rounding is disabled', () => {
+      const die = DicePresets.createGeometricDie(1, 1.5, 4, false); // 1, 1.5, 2.25, 3.375
+      expect(die.values).toEqual([1, 1.5, 2.25, 3.375]);
+    });
   });
 
   describe('createWeightedDie', () => {
