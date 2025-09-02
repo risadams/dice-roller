@@ -230,7 +230,7 @@ function rollScrumDie() {
       console.log(`🎲 Rolling Scrum Planning Die: ${result}`);
       console.log(`📋 Possible values: 1, 2, 3, 5, 8, 13, 20, ?`);
     } else {
-      console.log(`${result}`);
+      console.log(result);
     }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -247,7 +247,7 @@ function rollFibonacciDie() {
       console.log(`🎲 Rolling Fibonacci Die: ${result}`);
       console.log(`📋 Possible values: 0, 1, 1, 2, 3, 5, 8, 13`);
     } else {
-      console.log(`${result}`);
+      console.log(result);
     }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -264,7 +264,7 @@ function flipCoin() {
       console.log(`🪙 Flipping coin: ${result}`);
       console.log(`📋 Possible values: Heads, Tails`);
     } else {
-      console.log(`${result}`);
+      console.log(result);
     }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -281,7 +281,7 @@ function rollMagic8Ball() {
       console.log(`🎱 Magic 8-Ball says: ${result}`);
       console.log(`📋 Possible responses: Yes, No, Maybe, Ask again later, Definitely, Absolutely not, Signs point to yes, Cannot predict now`);
     } else {
-      console.log(`${result}`);
+      console.log(result);
     }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -298,7 +298,7 @@ function rollYesNo() {
       console.log(`🎯 Decision: ${result}`);
       console.log(`📋 Possible values: Yes, No`);
     } else {
-      console.log(`${result}`);
+      console.log(result);
     }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
