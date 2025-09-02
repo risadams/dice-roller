@@ -30,6 +30,17 @@ npx @risadams/dice-roller "3d6+5"
 npx @risadams/dice-roller roll d20
 npx @risadams/dice-roller "2d8+1d4-2"
 
+# Custom dice
+npx @risadams/dice-roller scrum        # Scrum planning
+npx @risadams/dice-roller fibonacci    # Fibonacci sequence
+npx @risadams/dice-roller coin         # Coin flip
+npx @risadams/dice-roller magic8       # Magic 8-Ball
+npx @risadams/dice-roller yesno        # Yes/No decision
+
+# Verbose output (with details)
+npx @risadams/dice-roller "3d6+5" --verbose
+npx @risadams/dice-roller coin -v
+
 # Advanced mechanics
 npx @risadams/dice-roller advantage d20
 npx @risadams/dice-roller disadvantage d20
@@ -372,6 +383,18 @@ MIT - see the [LICENSE](LICENSE) file for details.
 5. Submit a pull request
 
 ## Changelog
+
+### 1.1.2
+
+- **ENHANCED**: CLI now shows clean output by default (just the result)
+- **NEW**: `--verbose`/`-v` flag for detailed output with emojis and breakdowns
+- **NEW**: Additional custom dice CLI commands:
+  - `coin` (alias: `flip`) - Coin flip (Heads/Tails)
+  - `magic8` (aliases: `8ball`, `magic8ball`) - Magic 8-Ball responses
+  - `yesno` (aliases: `yn`, `decision`) - Simple Yes/No decision maker
+- **ENHANCED**: All CLI commands support both clean and verbose output modes
+- **ENHANCED**: Flexible flag positioning (--verbose can go before or after commands)
+- **ENHANCED**: Better user experience with intuitive command aliases
 
 ### 1.1.1
 

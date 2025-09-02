@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-09-02
+
+### Added
+
+- Enhanced CLI with `--verbose`/`-v` flag for detailed output
+- New custom dice CLI commands:
+  - `coin` (alias: `flip`) - Coin flip (Heads/Tails)
+  - `magic8` (aliases: `8ball`, `magic8ball`) - Magic 8-Ball responses
+  - `yesno` (aliases: `yn`, `decision`) - Simple Yes/No decision maker
+- Support for flexible flag positioning (before or after commands)
+- Comprehensive help documentation for all new commands
+
+### Changed
+
+- **BREAKING**: CLI now shows clean output by default (just the result)
+- Verbose output (with emojis and details) now requires `--verbose` or `-v` flag
+- Enhanced user experience with minimal default output for quick dice rolls
+- Improved help text organization and examples
+
+### Enhanced
+
+- All existing CLI commands now support verbose mode
+- Better emoji usage for different die types in verbose mode
+- Consistent output formatting across all commands
+- Multiple command aliases for better user experience
+
 ## [1.1.1] - 2025-09-02
 
 ### Added

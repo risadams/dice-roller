@@ -4,7 +4,10 @@ import { Roller } from './Roller';
 import { DiceExpression } from './DiceExpression';
 import { DicePresets } from './CustomDie';
 
-const version = '1.1.1';
+const version = '1.1.2';
+
+// Global flag for verbose output
+let isVerbose = false;
 
 function showHelp() {
   console.log(`
@@ -15,18 +18,28 @@ Usage:
   npx @risadams/dice-roller roll <dice>      Roll specific dice (e.g., d20, 3d6)
   npx @risadams/dice-roller scrum            Roll a Scrum planning die
   npx @risadams/dice-roller fibonacci        Roll a Fibonacci die
+  npx @risadams/dice-roller coin             Flip a coin (Heads/Tails)
+  npx @risadams/dice-roller magic8           Roll a Magic 8-Ball
+  npx @risadams/dice-roller yesno            Roll a Yes/No decision die
   npx @risadams/dice-roller demo             Run interactive demo
   npx @risadams/dice-roller stats <expr>     Show statistics for expression
   npx @risadams/dice-roller help             Show this help
   npx @risadams/dice-roller version          Show version
 
+Flags:
+  --verbose, -v                         Show detailed output including intermediate rolls
+
 Examples:
-  npx @risadams/dice-roller "3d6+5"          Roll 3d6+5
+  npx @risadams/dice-roller "3d6+5"          Roll 3d6+5 (shows result only)
+  npx @risadams/dice-roller "3d6+5" --verbose  Roll 3d6+5 with details
   npx @risadams/dice-roller "2d20+1d4-2"     Roll complex expression
   npx @risadams/dice-roller roll d20         Roll a d20
-  npx @risadams/dice-roller roll 4d6         Roll 4d6
+  npx @risadams/dice-roller roll 4d6 -v      Roll 4d6 with verbose output
   npx @risadams/dice-roller scrum            Roll Scrum planning die (1,2,3,5,8,13,20,?)
   npx @risadams/dice-roller fibonacci        Roll Fibonacci die (0,1,1,2,3,5,8,13)
+  npx @risadams/dice-roller coin             Flip a coin (Heads/Tails)
+  npx @risadams/dice-roller magic8           Ask the Magic 8-Ball
+  npx @risadams/dice-roller yesno            Roll a Yes/No decision die
   npx @risadams/dice-roller stats "3d6"      Show statistics for 3d6
 
 Dice Notation:
@@ -51,20 +64,24 @@ function rollExpression(expression: string) {
     const roller = new Roller();
     const result = roller.rollExpressionDetailed(expression);
     
-    console.log(`🎲 Rolling: ${expression}`);
-    console.log(`📊 Result: ${result.result}`);
-    console.log(`📈 Range: ${result.minValue}-${result.maxValue}`);
-    
-    // Show detailed breakdown for complex expressions
-    if (result.parts.length > 1) {
-      console.log(`🔍 Breakdown:`);
-      result.parts.forEach((part, index) => {
-        if (part.type === 'dice') {
-          console.log(`   ${part.value}: ${part.result} ${part.rolls ? `(${part.rolls.join(', ')})` : ''}`);
-        } else if (part.type === 'constant') {
-          console.log(`   +${part.value}`);
-        }
-      });
+    if (isVerbose) {
+      console.log(`🎲 Rolling: ${expression}`);
+      console.log(`📊 Result: ${result.result}`);
+      console.log(`📈 Range: ${result.minValue}-${result.maxValue}`);
+      
+      // Show detailed breakdown for complex expressions
+      if (result.parts.length > 1) {
+        console.log(`🔍 Breakdown:`);
+        result.parts.forEach((part, index) => {
+          if (part.type === 'dice') {
+            console.log(`   ${part.value}: ${part.result} ${part.rolls ? `(${part.rolls.join(', ')})` : ''}`);
+          } else if (part.type === 'constant') {
+            console.log(`   +${part.value}`);
+          }
+        });
+      }
+    } else {
+      console.log(result.result);
     }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -78,8 +95,20 @@ function rollDice(dice: string) {
     
     // Parse dice notation (e.g., "d20", "3d6")
     if (dice.match(/^\d*d\d+$/)) {
-      const result = roller.rollExpression(dice);
-      console.log(`🎲 Rolling ${dice}: ${result}`);
+      if (isVerbose) {
+        const detailedResult = roller.rollExpressionDetailed(dice);
+        console.log(`🎲 Rolling ${dice}: ${detailedResult.result}`);
+        console.log(`📈 Range: ${detailedResult.minValue}-${detailedResult.maxValue}`);
+        
+        // Show individual rolls if available
+        const dicePart = detailedResult.parts.find(p => p.type === 'dice');
+        if (dicePart && dicePart.rolls) {
+          console.log(`📊 Individual rolls: ${dicePart.rolls.join(', ')}`);
+        }
+      } else {
+        const result = roller.rollExpression(dice);
+        console.log(result);
+      }
     } else {
       console.error(`❌ Invalid dice notation: ${dice}`);
       console.log('Use format like: d20, 3d6, 2d8, etc.');
@@ -100,8 +129,13 @@ function rollAdvantage(dice: string) {
     }
     
     const result = roller.rollWithAdvantage(sides);
-    console.log(`🎲 Rolling ${dice} with Advantage: ${result.result}`);
-    console.log(`📊 Rolls: ${result.rolls.join(', ')} (taking higher)`);
+    
+    if (isVerbose) {
+      console.log(`🎲 Rolling ${dice} with Advantage: ${result.result}`);
+      console.log(`📊 Rolls: ${result.rolls.join(', ')} (taking higher)`);
+    } else {
+      console.log(result.result);
+    }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     process.exit(1);
@@ -117,8 +151,13 @@ function rollDisadvantage(dice: string) {
     }
     
     const result = roller.rollWithDisadvantage(sides);
-    console.log(`🎲 Rolling ${dice} with Disadvantage: ${result.result}`);
-    console.log(`📊 Rolls: ${result.rolls.join(', ')} (taking lower)`);
+    
+    if (isVerbose) {
+      console.log(`🎲 Rolling ${dice} with Disadvantage: ${result.result}`);
+      console.log(`📊 Rolls: ${result.rolls.join(', ')} (taking lower)`);
+    } else {
+      console.log(result.result);
+    }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     process.exit(1);
@@ -138,8 +177,13 @@ function rollExploding(expression: string) {
     const sides = parseInt(match[2]);
     
     const result = roller.rollExploding(count, sides);
-    console.log(`🎲 Rolling exploding ${expression}: ${result.result}`);
-    console.log(`📊 Rolls: ${result.rolls.join(', ')} (${result.explosions} explosions)`);
+    
+    if (isVerbose) {
+      console.log(`🎲 Rolling exploding ${expression}: ${result.result}`);
+      console.log(`📊 Rolls: ${result.rolls.join(', ')} (${result.explosions} explosions)`);
+    } else {
+      console.log(result.result);
+    }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     process.exit(1);
@@ -182,9 +226,12 @@ function rollScrumDie() {
     const scrumDie = DicePresets.createScrumPlanningDie();
     const result = scrumDie.roll();
     
-    console.log(`🎯 Rolling Scrum Planning Die: ${result}`);
-    console.log(`📊 Possible values: ${scrumDie.getPossibleValues().join(', ')}`);
-    console.log(`📈 Perfect for Scrum planning poker sessions!`);
+    if (isVerbose) {
+      console.log(`🎲 Rolling Scrum Planning Die: ${result}`);
+      console.log(`📋 Possible values: 1, 2, 3, 5, 8, 13, 20, ?`);
+    } else {
+      console.log(`${result}`);
+    }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     process.exit(1);
@@ -196,9 +243,63 @@ function rollFibonacciDie() {
     const fibDie = DicePresets.createFibonacciDie();
     const result = fibDie.roll();
     
-    console.log(`🔢 Rolling Fibonacci Die: ${result}`);
-    console.log(`📊 Possible values: ${fibDie.getPossibleValues().join(', ')}`);
-    console.log(`📈 Fibonacci sequence perfect for story point estimation!`);
+    if (isVerbose) {
+      console.log(`🎲 Rolling Fibonacci Die: ${result}`);
+      console.log(`📋 Possible values: 0, 1, 1, 2, 3, 5, 8, 13`);
+    } else {
+      console.log(`${result}`);
+    }
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
+function flipCoin() {
+  try {
+    const coinDie = DicePresets.createCoinDie();
+    const result = coinDie.roll();
+    
+    if (isVerbose) {
+      console.log(`🪙 Flipping coin: ${result}`);
+      console.log(`📋 Possible values: Heads, Tails`);
+    } else {
+      console.log(`${result}`);
+    }
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
+function rollMagic8Ball() {
+  try {
+    const magic8Die = DicePresets.createMagic8BallDie();
+    const result = magic8Die.roll();
+    
+    if (isVerbose) {
+      console.log(`🎱 Magic 8-Ball says: ${result}`);
+      console.log(`📋 Possible responses: Yes, No, Maybe, Ask again later, Definitely, Absolutely not, Signs point to yes, Cannot predict now`);
+    } else {
+      console.log(`${result}`);
+    }
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
+function rollYesNo() {
+  try {
+    const yesNoDie = DicePresets.createTextDie(['Yes', 'No']);
+    const result = yesNoDie.roll();
+    
+    if (isVerbose) {
+      console.log(`🎯 Decision: ${result}`);
+      console.log(`📋 Possible values: Yes, No`);
+    } else {
+      console.log(`${result}`);
+    }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     process.exit(1);
@@ -239,6 +340,13 @@ function runDemo() {
 
 // Main CLI logic
 const args = process.argv.slice(2);
+
+// Parse verbose flag
+const verboseIndex = args.findIndex(arg => arg === '--verbose' || arg === '-v');
+if (verboseIndex !== -1) {
+  isVerbose = true;
+  args.splice(verboseIndex, 1);
+}
 
 if (args.length === 0) {
   showHelp();
@@ -311,6 +419,23 @@ switch (command) {
   case 'fibonacci':
   case 'fib':
     rollFibonacciDie();
+    break;
+    
+  case 'coin':
+  case 'flip':
+    flipCoin();
+    break;
+    
+  case 'magic8':
+  case '8ball':
+  case 'magic8ball':
+    rollMagic8Ball();
+    break;
+    
+  case 'yesno':
+  case 'yn':
+  case 'decision':
+    rollYesNo();
     break;
     
   default:
