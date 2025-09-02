@@ -13,6 +13,8 @@ function showHelp() {
 Usage:
   npx @risadams/dice-roller <expression>     Roll a dice expression
   npx @risadams/dice-roller roll <dice>      Roll specific dice (e.g., d20, 3d6)
+  npx @risadams/dice-roller scrum            Roll a Scrum planning die
+  npx @risadams/dice-roller fibonacci        Roll a Fibonacci die
   npx @risadams/dice-roller demo             Run interactive demo
   npx @risadams/dice-roller stats <expr>     Show statistics for expression
   npx @risadams/dice-roller help             Show this help
@@ -23,6 +25,8 @@ Examples:
   npx @risadams/dice-roller "2d20+1d4-2"     Roll complex expression
   npx @risadams/dice-roller roll d20         Roll a d20
   npx @risadams/dice-roller roll 4d6         Roll 4d6
+  npx @risadams/dice-roller scrum            Roll Scrum planning die (1,2,3,5,8,13,20,?)
+  npx @risadams/dice-roller fibonacci        Roll Fibonacci die (0,1,1,2,3,5,8,13)
   npx @risadams/dice-roller stats "3d6"      Show statistics for 3d6
 
 Dice Notation:
