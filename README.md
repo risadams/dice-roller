@@ -373,6 +373,24 @@ MIT - see the [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
+### 1.1.0
+
+- **NEW**: Custom dice with user-defined values for each side
+- **NEW**: **Non-numeric dice support** - dice can now have text, symbols, or mixed content
+- **NEW**: `CustomDie<T>` class with TypeScript generics for type-safe custom dice
+- **NEW**: `DicePresets` with factory methods for common custom dice patterns:
+  - Fibonacci sequence dice (perfect for Scrum planning)
+  - **Scrum planning poker dice with actual "?" character**
+  - **Text-based dice** (Yes/No, Magic 8-Ball, coin flip, etc.)
+  - Arithmetic and geometric progression dice
+  - **Weighted dice supporting both numeric and text values**
+- **NEW**: Enhanced statistics methods that gracefully handle mixed numeric/non-numeric dice
+- **NEW**: Dice comparison functionality supporting different value types
+- **NEW**: Type detection methods (`hasNumericValues()`, `hasNonNumericValues()`)
+- **ENHANCED**: `Roller` class now supports custom dice operations with full type safety
+- **ENHANCED**: Fair rolling ensures all custom dice maintain proper probability distributions
+- **ENHANCED**: Statistics analysis separates numeric and non-numeric data appropriately
+
 ### 1.0.0
 
 - Initial release of TypeScript dice rolling library
