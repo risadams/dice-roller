@@ -115,7 +115,10 @@ const weightedDie = DicePresets.createWeightedDie([
   { value: 2, weight: 2 },
   { value: 3, weight: 3 }
 ]);
-console.log(`Weighted die (1: 16.7%, 2: 33.3%, 3: 50%):`);
+const prob1 = (weightedDie.getProbability(1) * 100).toFixed(1);
+const prob2 = (weightedDie.getProbability(2) * 100).toFixed(1);
+const prob3 = (weightedDie.getProbability(3) * 100).toFixed(1);
+console.log(`Weighted die (1: ${prob1}%, 2: ${prob2}%, 3: ${prob3}%):`);
 console.log(`- Rolling 10 times: ${roller.rollCustomDice(weightedDie, 10)}`);
 console.log();
 

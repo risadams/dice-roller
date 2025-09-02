@@ -89,7 +89,7 @@ const answer = magic8Ball.roll(); // Returns various text responses
 const lootDie = DicePresets.createWeightedDie([
   { value: 'Common', weight: 5 },
   { value: 'Rare', weight: 1 }
-]); // 83.3% chance of "Common", 16.7% chance of "Rare"
+]); // Use lootDie.getProbability('Common') to get actual percentages
 
 // Advanced mechanics
 const advantageRoll = roller.rollWithAdvantage(20);
@@ -163,7 +163,7 @@ const weightedDie = DicePresets.createWeightedDie([
   { value: 2, weight: 2 },
   { value: 3, weight: 3 }
 ]);
-// 1 appears 16.7% of the time, 2 appears 33.3%, 3 appears 50%
+// Probability: 1=16.7%, 2=33.3%, 3=50.0% (calculated dynamically via getProbability())
 ```
 
 ### DiceExpression Class
