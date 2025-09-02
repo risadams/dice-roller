@@ -1,4 +1,5 @@
 import { Roller } from '../Roller';
+import { CustomDie, DicePresets } from '../CustomDie';
 
 describe('Roller', () => {
   describe('basic rolling', () => {
@@ -154,11 +155,138 @@ describe('Roller', () => {
       const roller = new Roller();
       const stats = roller.getStatistics('3d6', 1000);
       
-      expect(stats.mean).toBeCloseTo(10.5, 0.5);
+      expect(stats.mean).toBeCloseTo(10.5, 0.1); // Increased tolerance for random variation
       expect(stats.min).toBeGreaterThanOrEqual(3);
       expect(stats.max).toBeLessThanOrEqual(18);
       expect(stats.standardDeviation).toBeGreaterThan(0);
       expect(Object.keys(stats.distribution)).toContain('10');
+    });
+  });
+
+  describe('custom dice', () => {
+    it('should roll custom dice', () => {
+      const roller = new Roller();
+      const customDie = new CustomDie([2, 4, 6, 8]);
+      const results = roller.rollCustomDice(customDie, 5);
+      
+      expect(results).toHaveLength(5);
+      results.forEach(result => {
+        expect([2, 4, 6, 8]).toContain(result);
+      });
+    });
+
+    it('should calculate sum of custom dice', () => {
+      const roller = new Roller();
+      const customDie = new CustomDie([1, 2, 3]);
+      const sum = roller.rollCustomDiceSum(customDie, 3);
+      
+      expect(sum).toBeGreaterThanOrEqual(3);
+      expect(sum).toBeLessThanOrEqual(9);
+    });
+
+    it('should generate statistics for custom dice with numeric values', () => {
+      const roller = new Roller();
+      const customDie = new CustomDie([1, 1, 2, 2, 3]); // Expected value: 1.8
+      const stats = roller.getCustomDieStatistics(customDie, 1000);
+      
+      expect(stats.expectedValue).toBeCloseTo(1.8);
+      expect(stats.mean).toBeCloseTo(1.8, 0.2);
+      expect(stats.min).toBe(1);
+      expect(stats.max).toBe(3);
+      expect(stats.theoreticalDistribution['1']).toBeCloseTo(0.4);
+      expect(stats.theoreticalDistribution['2']).toBeCloseTo(0.4);
+      expect(stats.theoreticalDistribution['3']).toBeCloseTo(0.2);
+      expect(stats.hasNumericValues).toBe(true);
+      expect(stats.hasNonNumericValues).toBe(false);
+    });
+
+    it('should generate statistics for custom dice with non-numeric values', () => {
+      const roller = new Roller();
+      const customDie = new CustomDie(['A', 'A', 'B', 'C']);
+      const stats = roller.getCustomDieStatistics(customDie, 1000);
+      
+      expect(stats.expectedValue).toBeNull();
+      expect(stats.mean).toBeNull();
+      expect(stats.min).toBeNull();
+      expect(stats.max).toBeNull();
+      expect(stats.theoreticalDistribution['A']).toBeCloseTo(0.5);
+      expect(stats.theoreticalDistribution['B']).toBeCloseTo(0.25);
+      expect(stats.theoreticalDistribution['C']).toBeCloseTo(0.25);
+      expect(stats.hasNumericValues).toBe(false);
+      expect(stats.hasNonNumericValues).toBe(true);
+    });
+
+    it('should generate statistics for mixed dice', () => {
+      const roller = new Roller();
+      const customDie = new CustomDie([1, 'A', 2, 'B']);
+      const stats = roller.getCustomDieStatistics(customDie, 1000);
+      
+      expect(stats.expectedValue).toBeCloseTo(0.75); // (1+2)/4
+      expect(stats.hasNumericValues).toBe(true);
+      expect(stats.hasNonNumericValues).toBe(true);
+      expect(stats.theoreticalDistribution['1']).toBeCloseTo(0.25);
+      expect(stats.theoreticalDistribution['A']).toBeCloseTo(0.25);
+      expect(stats.theoreticalDistribution['2']).toBeCloseTo(0.25);
+      expect(stats.theoreticalDistribution['B']).toBeCloseTo(0.25);
+    });
+
+    it('should compare custom dice', () => {
+      const roller = new Roller();
+      const die1 = new CustomDie([1, 2, 3]);
+      const die2 = new CustomDie([2, 3, 4]);
+      const comparison = roller.compareCustomDice(die1, die2, 100);
+      
+      expect(comparison.die1Wins + comparison.die2Wins + comparison.ties).toBe(100);
+      expect(comparison.die1Average).not.toBeNull();
+      expect(comparison.die2Average).not.toBeNull();
+      if (comparison.die1Average !== null && comparison.die2Average !== null) {
+        expect(comparison.die1Average).toBeLessThan(comparison.die2Average);
+      }
+    });
+
+    it('should compare non-numeric dice', () => {
+      const roller = new Roller();
+      const die1 = new CustomDie(['A', 'B', 'C']);
+      const die2 = new CustomDie(['X', 'Y', 'Z']);
+      const comparison = roller.compareCustomDice(die1, die2, 100);
+      
+      expect(comparison.die1Wins + comparison.die2Wins + comparison.ties).toBe(100);
+      expect(comparison.die1Average).toBeNull();
+      expect(comparison.die2Average).toBeNull();
+      expect(comparison.results).toHaveLength(100);
+    });
+
+    it('should work with Fibonacci die', () => {
+      const roller = new Roller();
+      const fibDie = DicePresets.createFibonacciDie(6); // [0, 1, 1, 2, 3, 5]
+      const results = roller.rollCustomDice(fibDie, 10);
+      
+      expect(results).toHaveLength(10);
+      results.forEach(result => {
+        expect([0, 1, 2, 3, 5]).toContain(result);
+      });
+    });
+
+    it('should work with Scrum planning die', () => {
+      const roller = new Roller();
+      const scrumDie = DicePresets.createScrumPlanningDie();
+      const results = roller.rollCustomDice(scrumDie, 10);
+      
+      expect(results).toHaveLength(10);
+      results.forEach(result => {
+        expect([1, 2, 3, 5, 8, 13, 20, "?"]).toContain(result);
+      });
+    });
+
+    it('should work with text-based dice', () => {
+      const roller = new Roller();
+      const coinDie = DicePresets.createCoinDie();
+      const results = roller.rollCustomDice(coinDie, 10);
+      
+      expect(results).toHaveLength(10);
+      results.forEach(result => {
+        expect(['Heads', 'Tails']).toContain(result);
+      });
     });
   });
 

@@ -1,5 +1,6 @@
 import { Die } from './Die';
 import { DiceExpression } from './DiceExpression';
+import { CustomDie } from './CustomDie';
 
 /**
  * Main dice rolling engine that handles various dice operations
@@ -233,6 +234,175 @@ export class Roller {
       max: Math.max(...results),
       standardDeviation,
       distribution
+    };
+  }
+
+  /**
+   * Generate statistics for a custom die
+   */
+  public getCustomDieStatistics<T>(customDie: CustomDie<T>, samples: number = 10000): {
+    mean: number | null;
+    min: number | null;
+    max: number | null;
+    standardDeviation: number | null;
+    distribution: { [key: string]: number };
+    expectedValue: number | null;
+    theoreticalDistribution: { [key: string]: number };
+    hasNumericValues: boolean;
+    hasNonNumericValues: boolean;
+  } {
+    const results: T[] = [];
+    const distribution: { [key: string]: number } = {};
+    const numericResults: number[] = [];
+
+    for (let i = 0; i < samples; i++) {
+      const result = customDie.roll();
+      results.push(result);
+      if (typeof result === 'number') {
+        numericResults.push(result);
+      }
+      const key = String(result);
+      distribution[key] = (distribution[key] || 0) + 1;
+    }
+
+    // Only calculate numeric statistics if the die has numeric values
+    let mean: number | null = null;
+    let min: number | null = null;
+    let max: number | null = null;
+    let standardDeviation: number | null = null;
+    let expectedValue: number | null = null;
+
+    if (customDie.hasNumericValues()) {
+      if (numericResults.length > 0) {
+        mean = numericResults.reduce((sum, val) => sum + val, 0) / numericResults.length;
+        min = Math.min(...numericResults);
+        max = Math.max(...numericResults);
+        
+        const variance = numericResults.reduce((sum, val) => sum + Math.pow(val - mean!, 2), 0) / numericResults.length;
+        standardDeviation = Math.sqrt(variance);
+      }
+      
+      try {
+        expectedValue = customDie.getExpectedValue();
+      } catch (error) {
+        expectedValue = null;
+      }
+    }
+
+    // Calculate theoretical distribution
+    const theoreticalDistribution: { [key: string]: number } = {};
+    const possibleValues = customDie.getPossibleValues();
+    for (const value of possibleValues) {
+      const key = String(value);
+      theoreticalDistribution[key] = customDie.getProbability(value);
+    }
+
+    return {
+      mean,
+      min,
+      max,
+      standardDeviation,
+      distribution,
+      expectedValue,
+      theoreticalDistribution,
+      hasNumericValues: customDie.hasNumericValues(),
+      hasNonNumericValues: customDie.hasNonNumericValues()
+    };
+  }
+
+  /**
+   * Roll multiple custom dice and return results
+   */
+  public rollCustomDice<T>(customDie: CustomDie<T>, count: number): T[] {
+    return customDie.rollMultiple(count);
+  }
+
+  /**
+   * Roll multiple custom dice and return the sum (only works with numeric dice)
+   */
+  public rollCustomDiceSum(customDie: CustomDie<number>, count: number): number {
+    const results = this.rollCustomDice(customDie, count);
+    return results.reduce((sum, roll) => sum + roll, 0);
+  }
+
+  /**
+   * Compare two custom dice by rolling them multiple times
+   * For non-numeric dice, compares string representations
+   */
+  public compareCustomDice<T, U>(
+    die1: CustomDie<T>, 
+    die2: CustomDie<U>, 
+    samples: number = 1000
+  ): {
+    die1Wins: number;
+    die2Wins: number;
+    ties: number;
+    die1Average: number | null;
+    die2Average: number | null;
+    results: Array<{ die1: T; die2: U; winner: 'die1' | 'die2' | 'tie' }>;
+  } {
+    let die1Wins = 0;
+    let die2Wins = 0;
+    let ties = 0;
+    let die1Total = 0;
+    let die2Total = 0;
+    let die1NumericCount = 0;
+    let die2NumericCount = 0;
+    const results: Array<{ die1: T; die2: U; winner: 'die1' | 'die2' | 'tie' }> = [];
+
+    for (let i = 0; i < samples; i++) {
+      const roll1 = die1.roll();
+      const roll2 = die2.roll();
+      
+      // Track numeric totals if possible
+      if (typeof roll1 === 'number') {
+        die1Total += roll1;
+        die1NumericCount++;
+      }
+      if (typeof roll2 === 'number') {
+        die2Total += roll2;
+        die2NumericCount++;
+      }
+
+      // Compare values
+      let winner: 'die1' | 'die2' | 'tie';
+      if (typeof roll1 === 'number' && typeof roll2 === 'number') {
+        if (roll1 > roll2) {
+          winner = 'die1';
+          die1Wins++;
+        } else if (roll2 > roll1) {
+          winner = 'die2';
+          die2Wins++;
+        } else {
+          winner = 'tie';
+          ties++;
+        }
+      } else {
+        // For non-numeric values, compare string representations
+        const str1 = String(roll1);
+        const str2 = String(roll2);
+        if (str1 > str2) {
+          winner = 'die1';
+          die1Wins++;
+        } else if (str2 > str1) {
+          winner = 'die2';
+          die2Wins++;
+        } else {
+          winner = 'tie';
+          ties++;
+        }
+      }
+
+      results.push({ die1: roll1, die2: roll2, winner });
+    }
+
+    return {
+      die1Wins,
+      die2Wins,
+      ties,
+      die1Average: die1NumericCount > 0 ? die1Total / die1NumericCount : null,
+      die2Average: die2NumericCount > 0 ? die2Total / die2NumericCount : null,
+      results
     };
   }
 }

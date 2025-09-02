@@ -6,12 +6,17 @@ A sophisticated TypeScript dice rolling library for tabletop RPGs, games, and an
 
 - **Simple dice rolling** (d4, d6, d8, d10, d12, d20, d100)
 - **Complex dice expressions** (e.g., "3d6+5", "2d8-1d4+3")
+- **Custom dice** with user-defined values for each side (numeric and non-numeric)
+- **Non-numeric dice** support for text, symbols, and mixed content
+- **Fibonacci dice** for Scrum planning and estimation
+- **Weighted dice** for non-uniform probability distributions
+- **Text-based dice** (Yes/No, Magic 8-Ball, etc.)
 - **Advanced rolling mechanics**:
   - Advantage/Disadvantage
   - Keep highest/lowest N dice
   - Exploding dice
   - Custom random functions
-- **Statistical analysis** of dice expressions
+- **Statistical analysis** of dice expressions and custom dice
 - **Comprehensive test suite** with 100% coverage
 - **TypeScript support** with full type definitions
 
@@ -49,7 +54,7 @@ npm install @risadams/dice-roller
 ## Quick Start
 
 ```typescript
-import { Roller } from '@risadams/dice-roller';
+import { Roller, CustomDie, DicePresets } from '@risadams/dice-roller';
 
 const roller = new Roller();
 
@@ -60,6 +65,31 @@ const damage = roller.rollSum(3, 6); // 3d6 damage
 // Expression rolling
 const attack = roller.rollExpression('1d20+5');
 const fireball = roller.rollExpression('8d6');
+
+// Custom dice
+const customDie = new CustomDie([2, 4, 6, 8, 10]);
+const customRolls = roller.rollCustomDice(customDie, 3);
+
+// Fibonacci die for Scrum planning
+const fibDie = DicePresets.createFibonacciDie(8);
+const storyPoints = fibDie.roll(); // Returns: 0, 1, 1, 2, 3, 5, 8, or 13
+
+// Scrum planning with actual "?" character
+const scrumDie = DicePresets.createScrumPlanningDie();
+const estimate = scrumDie.roll(); // Returns: 1, 2, 3, 5, 8, 13, 20, or "?"
+
+// Text-based dice
+const coinDie = DicePresets.createCoinDie();
+const coinFlip = coinDie.roll(); // Returns: "Heads" or "Tails"
+
+const magic8Ball = DicePresets.createMagic8BallDie();
+const answer = magic8Ball.roll(); // Returns various text responses
+
+// Weighted dice
+const lootDie = DicePresets.createWeightedDie([
+  { value: 'Common', weight: 5 },
+  { value: 'Rare', weight: 1 }
+]); // Use lootDie.getProbability('Common') to get actual percentages
 
 // Advanced mechanics
 const advantageRoll = roller.rollWithAdvantage(20);
@@ -93,6 +123,48 @@ const abilityScores = roller.rollKeepHighest(4, 6, 3); // 4d6 drop lowest
 
 - `rollStandard()` - Roll standard RPG dice set
 - `getStatistics(expression: string, samples: number)` - Generate statistics
+- `rollCustomDice(customDie: CustomDie, count: number)` - Roll custom dice
+- `rollCustomDiceSum(customDie: CustomDie, count: number)` - Sum custom dice rolls
+- `getCustomDieStatistics(customDie: CustomDie, samples: number)` - Analyze custom dice
+- `compareCustomDice(die1: CustomDie, die2: CustomDie, samples: number)` - Compare dice
+
+### CustomDie Class
+
+```typescript
+import { CustomDie } from '@risadams/dice-roller';
+
+// Create a custom die with specific values
+const customDie = new CustomDie([1, 3, 5, 7, 9]);
+console.log(customDie.roll()); // Returns one of: 1, 3, 5, 7, 9
+console.log(customDie.getExpectedValue()); // 5
+console.log(customDie.getProbability(5)); // 0.2 (20%)
+```
+
+### DicePresets Class
+
+```typescript
+import { DicePresets } from '@risadams/dice-roller';
+
+// Fibonacci sequence die (perfect for Scrum planning)
+const fibDie = DicePresets.createFibonacciDie(8);
+// Values: [0, 1, 1, 2, 3, 5, 8, 13]
+
+// Standard Scrum planning poker die
+const scrumDie = DicePresets.createScrumPlanningDie();
+// Values: [1, 2, 3, 5, 8, 13, 20, '?']
+
+// Arithmetic progression die
+const arithDie = DicePresets.createArithmeticDie(5, 3, 4);
+// Values: [5, 8, 11, 14]
+
+// Weighted die (some values more likely than others)
+const weightedDie = DicePresets.createWeightedDie([
+  { value: 1, weight: 1 },
+  { value: 2, weight: 2 },
+  { value: 3, weight: 3 }
+]);
+// Probability: 1=16.7%, 2=33.3%, 3=50.0% (calculated dynamically via getProbability())
+```
 
 ### DiceExpression Class
 
@@ -154,6 +226,75 @@ const fireball = roller.rollExpression('8d6');
 const healingPotion = roller.rollExpression('2d4+2');
 ```
 
+### Custom Dice for Scrum Planning
+
+```typescript
+const roller = new Roller();
+
+// Create a Fibonacci die for story point estimation
+const fibDie = DicePresets.createFibonacciDie(8);
+console.log(`Story points: ${fibDie.roll()}`); // 0, 1, 1, 2, 3, 5, 8, or 13
+
+// Standard Scrum planning poker with actual "?" character
+const scrumDie = DicePresets.createScrumPlanningDie();
+const estimate = scrumDie.roll();
+console.log(`Estimate: ${estimate}`); // Could be 1, 2, 3, 5, 8, 13, 20, or "?"
+
+// Analyze the distribution
+const stats = roller.getCustomDieStatistics(fibDie, 1000);
+if (stats.expectedValue !== null) {
+  console.log(`Average story points: ${stats.expectedValue.toFixed(1)}`);
+}
+```
+
+### Text-Based Dice
+
+```typescript
+const roller = new Roller();
+
+// Simple Yes/No decision
+const yesNoDie = DicePresets.createTextDie(['Yes', 'No', 'Maybe']);
+console.log(`Decision: ${yesNoDie.roll()}`);
+
+// Magic 8-Ball style responses
+const magic8Ball = DicePresets.createMagic8BallDie();
+console.log(`Magic 8-Ball says: "${magic8Ball.roll()}"`);
+
+// Coin flip
+const coinDie = DicePresets.createCoinDie();
+console.log(`Coin flip: ${coinDie.roll()}`);
+
+// Game loot with weighted text values
+const lootDie = DicePresets.createWeightedDie([
+  { value: 'Common', weight: 5 },
+  { value: 'Uncommon', weight: 3 },
+  { value: 'Rare', weight: 2 },
+  { value: 'Legendary', weight: 1 }
+]);
+console.log(`Loot rarity: ${lootDie.roll()}`);
+```
+
+### Mixed Numeric and Non-Numeric Dice
+
+```typescript
+// Custom die with mixed values
+const mixedDie = new CustomDie([1, 2, 'Skip', 4, 'Double']);
+console.log(`Roll result: ${mixedDie.roll()}`);
+
+// Scrum planning with actual "?" for unknown complexity
+const scrumDie = DicePresets.createScrumPlanningDie();
+const estimate = scrumDie.roll();
+console.log(`Story points: ${estimate}`); // Could be number or "?"
+
+// Statistics handle mixed types gracefully
+const stats = roller.getCustomDieStatistics(scrumDie, 1000);
+console.log(`Has numeric values: ${stats.hasNumericValues}`);
+console.log(`Has non-numeric values: ${stats.hasNonNumericValues}`);
+if (stats.expectedValue !== null) {
+  console.log(`Expected value of numeric faces: ${stats.expectedValue}`);
+}
+```
+
 ### Statistics and Analysis
 
 ```typescript
@@ -164,6 +305,20 @@ const stats = roller.getStatistics('1d8+3', 1000);
 console.log(`Average damage: ${stats.mean.toFixed(1)}`);
 console.log(`Range: ${stats.min}-${stats.max}`);
 console.log(`Standard deviation: ${stats.standardDeviation.toFixed(2)}`);
+
+// Analyze custom dice (works with both numeric and non-numeric)
+const customDie = new CustomDie([2, 4, 6, 8, 10]);
+const customStats = roller.getCustomDieStatistics(customDie, 1000);
+if (customStats.expectedValue !== null && customStats.mean !== null) {
+  console.log(`Expected value: ${customStats.expectedValue}`);
+  console.log(`Theoretical vs actual mean: ${customStats.expectedValue} vs ${customStats.mean.toFixed(2)}`);
+}
+
+// Mixed dice statistics
+const mixedDie = new CustomDie([1, 'A', 2, 'B']);
+const mixedStats = roller.getCustomDieStatistics(mixedDie, 1000);
+console.log(`Has numeric values: ${mixedStats.hasNumericValues}`);
+console.log(`Has non-numeric values: ${mixedStats.hasNonNumericValues}`);
 ```
 
 ### Custom Random Function
@@ -217,6 +372,24 @@ MIT - see the [LICENSE](LICENSE) file for details.
 5. Submit a pull request
 
 ## Changelog
+
+### 1.1.0
+
+- **NEW**: Custom dice with user-defined values for each side
+- **NEW**: **Non-numeric dice support** - dice can now have text, symbols, or mixed content
+- **NEW**: `CustomDie<T>` class with TypeScript generics for type-safe custom dice
+- **NEW**: `DicePresets` with factory methods for common custom dice patterns:
+  - Fibonacci sequence dice (perfect for Scrum planning)
+  - **Scrum planning poker dice with actual "?" character**
+  - **Text-based dice** (Yes/No, Magic 8-Ball, coin flip, etc.)
+  - Arithmetic and geometric progression dice
+  - **Weighted dice supporting both numeric and text values**
+- **NEW**: Enhanced statistics methods that gracefully handle mixed numeric/non-numeric dice
+- **NEW**: Dice comparison functionality supporting different value types
+- **NEW**: Type detection methods (`hasNumericValues()`, `hasNonNumericValues()`)
+- **ENHANCED**: `Roller` class now supports custom dice operations with full type safety
+- **ENHANCED**: Fair rolling ensures all custom dice maintain proper probability distributions
+- **ENHANCED**: Statistics analysis separates numeric and non-numeric data appropriately
 
 ### 1.0.0
 
