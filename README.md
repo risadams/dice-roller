@@ -76,7 +76,7 @@ const storyPoints = fibDie.roll(); // Returns: 0, 1, 1, 2, 3, 5, 8, or 13
 
 // Scrum planning with actual "?" character
 const scrumDie = DicePresets.createScrumPlanningDie();
-const estimate = scrumDie.roll(); // Returns: 0, 1, 2, 3, 5, 8, 13, 21, or "?"
+const estimate = scrumDie.roll(); // Returns: 1, 2, 3, 5, 8, 13, 20, or "?"
 
 // Text-based dice
 const coinDie = DicePresets.createCoinDie();
@@ -151,7 +151,7 @@ const fibDie = DicePresets.createFibonacciDie(8);
 
 // Standard Scrum planning poker die
 const scrumDie = DicePresets.createScrumPlanningDie();
-// Values: [0, 1, 2, 3, 5, 8, 13, 21, -1] (where -1 represents "?")
+// Values: [1, 2, 3, 5, 8, 13, 20, '?']
 
 // Arithmetic progression die
 const arithDie = DicePresets.createArithmeticDie(5, 3, 4);
@@ -238,7 +238,7 @@ console.log(`Story points: ${fibDie.roll()}`); // 0, 1, 1, 2, 3, 5, 8, or 13
 // Standard Scrum planning poker with actual "?" character
 const scrumDie = DicePresets.createScrumPlanningDie();
 const estimate = scrumDie.roll();
-console.log(`Estimate: ${estimate}`); // Could be 0, 1, 2, 3, 5, 8, 13, 21, or "?"
+console.log(`Estimate: ${estimate}`); // Could be 1, 2, 3, 5, 8, 13, 20, or "?"
 
 // Analyze the distribution
 const stats = roller.getCustomDieStatistics(fibDie, 1000);
