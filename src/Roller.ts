@@ -253,10 +253,14 @@ export class Roller {
   } {
     const results: T[] = [];
     const distribution: { [key: string]: number } = {};
+    const numericResults: number[] = [];
 
     for (let i = 0; i < samples; i++) {
       const result = customDie.roll();
       results.push(result);
+      if (typeof result === 'number') {
+        numericResults.push(result);
+      }
       const key = String(result);
       distribution[key] = (distribution[key] || 0) + 1;
     }
@@ -269,8 +273,6 @@ export class Roller {
     let expectedValue: number | null = null;
 
     if (customDie.hasNumericValues()) {
-      const numericResults = results.filter(r => typeof r === 'number') as number[];
-      
       if (numericResults.length > 0) {
         mean = numericResults.reduce((sum, val) => sum + val, 0) / numericResults.length;
         min = Math.min(...numericResults);

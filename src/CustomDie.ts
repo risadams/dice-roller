@@ -66,11 +66,22 @@ export class CustomDie<T = number | string> {
    * Get all possible values this die can produce
    */
   public getPossibleValues(): T[] {
-    const uniqueValues = [...new Set(this.values)];
-    const numericValues = uniqueValues.filter(v => typeof v === 'number') as number[];
-    const nonNumericValues = uniqueValues.filter(v => typeof v !== 'number');
-    const sortedNumeric = numericValues.slice().sort((a, b) => a - b);
-    const sortedNonNumeric = nonNumericValues.slice().sort((a, b) => String(a).localeCompare(String(b)));
+    const { numeric, nonNumeric } = this.values.reduce(
+      (acc, v) => {
+        if (!acc.seen.has(v)) {
+          acc.seen.add(v);
+          if (typeof v === 'number') {
+            acc.numeric.push(v as number);
+          } else {
+            acc.nonNumeric.push(v);
+          }
+        }
+        return acc;
+      },
+      { numeric: [] as number[], nonNumeric: [] as T[], seen: new Set<T>() }
+    );
+    const sortedNumeric = numeric.slice().sort((a, b) => a - b);
+    const sortedNonNumeric = nonNumeric.slice().sort((a, b) => String(a).localeCompare(String(b)));
     return [...(sortedNumeric as T[]), ...(sortedNonNumeric as T[])];
   }
 
