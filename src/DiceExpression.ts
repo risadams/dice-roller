@@ -2,6 +2,26 @@ import { Die } from './Die';
 import { DiceExpressionPart } from './DiceExpressionPart';
 
 /**
+ * Interface for step-by-step evaluation explanation
+ */
+export interface EvaluationStep {
+  step: number;
+  description: string;
+  operation: string;
+  value: number;
+  details?: string;
+  rolls?: number[];
+}
+
+export interface EvaluationExplanation {
+  originalExpression: string;
+  tokenization: string[];
+  parsing: string;
+  steps: EvaluationStep[];
+  finalResult: number;
+}
+
+/**
  * Configuration constants for dice expression evaluation
  */
 const DICE_EXPRESSION_CONFIG = {
@@ -17,6 +37,8 @@ const DICE_EXPRESSION_CONFIG = {
 export class DiceExpression {
   private parts: DiceExpressionPart[] = [];
   private static config = DICE_EXPRESSION_CONFIG;
+  private explanation: EvaluationExplanation | null = null;
+  private currentStep = 0;
   
   /**
    * Configure dice expression limits
@@ -310,6 +332,57 @@ export class DiceExpression {
   }
 
   /**
+   * Evaluate the dice expression with detailed step-by-step explanation
+   */
+  public evaluateWithExplanation(originalExpression: string): EvaluationExplanation {
+    if (this.parts.length === 0) {
+      throw new Error('No expression to evaluate');
+    }
+
+    // Initialize explanation
+    this.explanation = {
+      originalExpression,
+      tokenization: this.tokenize(originalExpression.replace(/\s/g, '').toLowerCase()),
+      parsing: this.formatParsingExplanation(),
+      steps: [],
+      finalResult: 0
+    };
+    this.currentStep = 0;
+
+    // Evaluate with tracking
+    const result = this.evaluatePartsListWithExplanation(this.parts, 'main expression');
+    this.explanation.finalResult = result;
+
+    return this.explanation;
+  }
+
+  /**
+   * Format the parsing explanation
+   */
+  private formatParsingExplanation(): string {
+    return `Parsed into ${this.parts.length} parts: ${this.parts.map(p => p.toString()).join(' ')}`;
+  }
+
+  /**
+   * Evaluate a list of expression parts with explanation tracking
+   */
+  private evaluatePartsListWithExplanation(parts: DiceExpressionPart[], context: string): number {
+    if (parts.length === 0) {
+      throw new Error('No parts to evaluate');
+    }
+
+    if (parts.length === 1) {
+      return this.evaluatePartWithExplanation(parts[0], context);
+    }
+
+    // Handle multiplication and division first (higher precedence)
+    const processedParts = this.evaluateMultiplicationDivisionWithExplanation([...parts]);
+    
+    // Then handle addition and subtraction (lower precedence)
+    return this.evaluateAdditionSubtractionWithExplanation(processedParts);
+  }
+
+  /**
    * Evaluate a list of expression parts with proper operator precedence
    */
   private evaluatePartsList(parts: DiceExpressionPart[]): number {
@@ -326,6 +399,280 @@ export class DiceExpression {
     
     // Then handle addition and subtraction (lower precedence)
     return this.evaluateAdditionSubtraction(processedParts);
+  }
+
+  /**
+   * Process multiplication and division operations with explanation
+   */
+  private evaluateMultiplicationDivisionWithExplanation(parts: DiceExpressionPart[]): DiceExpressionPart[] {
+    const result: DiceExpressionPart[] = [];
+    let i = 0;
+
+    while (i < parts.length) {
+      if (i + 2 < parts.length && 
+          parts[i + 1].type === 'operator' && 
+          (parts[i + 1].operator === '*' || parts[i + 1].operator === '/')) {
+        
+        const left = this.evaluatePartWithExplanation(parts[i], `left operand of ${parts[i + 1].operator}`);
+        const operator = parts[i + 1].operator!;
+        const right = this.evaluatePartWithExplanation(parts[i + 2], `right operand of ${parts[i + 1].operator}`);
+        
+        let value: number;
+        if (operator === '*') {
+          value = left * right;
+        } else {
+          value = Math.floor(left / right);
+        }
+
+        this.addExplanationStep(
+          `${left} ${operator} ${right} = ${value}`,
+          `${operator === '*' ? 'multiply' : 'divide'} ${left} and ${right}`,
+          value
+        );
+
+        result.push(DiceExpressionPart.createConstant(value));
+        i += 3;
+      } else {
+        result.push(parts[i]);
+        i++;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Process addition and subtraction operations with explanation
+   */
+  private evaluateAdditionSubtractionWithExplanation(parts: DiceExpressionPart[]): number {
+    let result = this.evaluatePartWithExplanation(parts[0], 'starting value');
+
+    for (let i = 1; i < parts.length; i += 2) {
+      if (i + 1 >= parts.length) break;
+      
+      const operator = parts[i].operator!;
+      const operand = this.evaluatePartWithExplanation(parts[i + 1], `operand for ${operator}`);
+      
+      const oldResult = result;
+      if (operator === '+') {
+        result += operand;
+      } else if (operator === '-') {
+        result -= operand;
+      }
+
+      this.addExplanationStep(
+        `${oldResult} ${operator} ${operand} = ${result}`,
+        `${operator === '+' ? 'add' : 'subtract'} ${operand} ${operator === '+' ? 'to' : 'from'} ${oldResult}`,
+        result
+      );
+    }
+
+    return result;
+  }
+
+  /**
+   * Evaluate a single part with explanation tracking
+   */
+  private evaluatePartWithExplanation(part: DiceExpressionPart, context: string): number {
+    switch (part.type) {
+      case 'dice':
+        const die = new Die(part.sides!);
+        const rolls = die.rollMultiple(part.count!);
+        const sum = rolls.reduce((sum, roll) => sum + roll, 0);
+        
+        this.addExplanationStep(
+          `${part.count}d${part.sides} = [${rolls.join(', ')}] = ${sum}`,
+          `roll ${part.count} ${part.sides}-sided dice for ${context}`,
+          sum,
+          `Individual rolls: ${rolls.join(', ')}`,
+          rolls
+        );
+        
+        return sum;
+
+      case 'constant':
+        this.addExplanationStep(
+          `${part.value}`,
+          `use constant value ${part.value} for ${context}`,
+          part.value
+        );
+        return part.value;
+
+      case 'parentheses':
+        if (!part.subExpression) {
+          throw new Error('Parentheses part missing sub-expression');
+        }
+        
+        this.addExplanationStep(
+          `(${part.subExpression.map(p => p.toString()).join(' ')})`,
+          `evaluate parenthesized expression for ${context}`,
+          0,
+          'Entering parenthesized sub-expression'
+        );
+        
+        const result = this.evaluatePartsListWithExplanation(part.subExpression, 'parenthesized expression');
+        
+        this.addExplanationStep(
+          `= ${result}`,
+          `parenthesized expression result`,
+          result,
+          'Exiting parenthesized sub-expression'
+        );
+        
+        return result;
+
+      case 'conditional':
+        if (part.count && part.sides) {
+          return this.evaluateConditionalDiceWithExplanation(part);
+        } else {
+          throw new Error('Standalone conditional operators are not supported in expressions');
+        }
+
+      case 'reroll':
+        return this.evaluateRerollDiceWithExplanation(part);
+
+      default:
+        throw new Error(`Cannot evaluate part of type: ${part.type}`);
+    }
+  }
+
+  /**
+   * Add a step to the explanation
+   */
+  private addExplanationStep(operation: string, description: string, value: number, details?: string, rolls?: number[]): void {
+    if (this.explanation) {
+      this.explanation.steps.push({
+        step: ++this.currentStep,
+        operation,
+        description,
+        value,
+        details,
+        rolls
+      });
+    }
+  }
+
+  /**
+   * Evaluate conditional dice with explanation
+   */
+  private evaluateConditionalDiceWithExplanation(part: DiceExpressionPart): number {
+    const die = new Die(part.sides!);
+    const rolls = die.rollMultiple(part.count!);
+    const threshold = part.threshold!;
+    const condition = part.condition!;
+    
+    let successes = 0;
+    const successfulRolls: number[] = [];
+    
+    for (const roll of rolls) {
+      let isSuccess = false;
+      switch (condition) {
+        case '>':
+          isSuccess = roll > threshold;
+          break;
+        case '>=':
+          isSuccess = roll >= threshold;
+          break;
+        case '<':
+          isSuccess = roll < threshold;
+          break;
+        case '<=':
+          isSuccess = roll <= threshold;
+          break;
+        case '=':
+        case '==':
+          isSuccess = roll === threshold;
+          break;
+        default:
+          throw new Error(`Unknown conditional operator: ${condition}`);
+      }
+      
+      if (isSuccess) {
+        successes++;
+        successfulRolls.push(roll);
+      }
+    }
+
+    this.addExplanationStep(
+      `${part.count}d${part.sides}${condition}${threshold} = [${rolls.join(', ')}] = ${successes} successes`,
+      `roll ${part.count} ${part.sides}-sided dice and count successes where result ${condition} ${threshold}`,
+      successes,
+      `All rolls: [${rolls.join(', ')}], Successful rolls: [${successfulRolls.join(', ')}]`,
+      rolls
+    );
+    
+    return successes;
+  }
+
+  /**
+   * Evaluate reroll dice with explanation
+   */
+  private evaluateRerollDiceWithExplanation(part: DiceExpressionPart): number {
+    const die = new Die(part.sides!);
+    const rerollCondition = part.rerollCondition!;
+    const rerollType = part.rerollType!;
+    let totalSum = 0;
+    const allRolls: number[] = [];
+
+    for (let i = 0; i < part.count!; i++) {
+      const { value, rolls } = this.rollSingleDieWithRerollsAndTracking(die, rerollCondition, rerollType);
+      totalSum += value;
+      allRolls.push(...rolls);
+    }
+
+    const rerollTypeNames: { [key: string]: string } = {
+      'exploding': 'exploding (add rerolls)',
+      'once': 'reroll once (replace)',
+      'recursive': 'recursive reroll (keep rerolling)'
+    };
+
+    this.addExplanationStep(
+      `${part.count}d${part.sides}r${part.rerollType === 'once' ? 'o' : part.rerollType === 'recursive' ? 'r' : ''}${rerollCondition} = ${totalSum}`,
+      `roll ${part.count} ${part.sides}-sided dice with ${rerollTypeNames[part.rerollType!]} when ${rerollCondition}`,
+      totalSum,
+      `All rolls including rerolls: [${allRolls.join(', ')}]`,
+      allRolls
+    );
+
+    return totalSum;
+  }
+
+  /**
+   * Roll a single die with reroll mechanics and track all rolls
+   */
+  private rollSingleDieWithRerollsAndTracking(die: Die, condition: string, rerollType: 'once' | 'recursive' | 'exploding'): { value: number; rolls: number[] } {
+    let roll = die.roll();
+    let total = roll;
+    let rerollCount = 0;
+    const maxRerolls = DiceExpression.config.MAX_REROLLS;
+    const allRolls = [roll];
+
+    while (this.shouldReroll(roll, condition) && rerollCount < maxRerolls) {
+      if (rerollType === 'exploding') {
+        // Standard reroll: keep the original and add the reroll
+        roll = die.roll();
+        total += roll;
+        allRolls.push(roll);
+      } else {
+        // Replace reroll: discard the original, use the new roll
+        roll = die.roll();
+        total = roll;
+        allRolls.push(roll);
+      }
+      
+      rerollCount++;
+      
+      // For 'once' type, only reroll once
+      if (rerollType === 'once') {
+        break;
+      }
+    }
+
+    if (rerollCount >= maxRerolls) {
+      throw new Error(`Maximum rerolls (${maxRerolls}) reached for safety. This may indicate an infinite reroll condition.`);
+    }
+
+    return { value: total, rolls: allRolls };
   }
 
   /**
