@@ -27,7 +27,7 @@ This document outlines planned features and enhancements for the Dice Roller lib
 - Fixed random function propagation in `rollDice()` method
 
 ### 2. Expression Parser Enhancements 📝
-**Status**: In Progress  
+**Status**: ✅ COMPLETED  
 **Effort**: High  
 **Impact**: High - Greatly expands expression capabilities
 
@@ -38,10 +38,18 @@ This document outlines planned features and enhancements for the Dice Roller lib
   - `3d6>10` (count successes) ✅
   - `4d6>=4` (meets threshold) ✅
   - Also supports: `<`, `<=`, `=`, `==`
-- [ ] Add reroll mechanics
-  - `4d6r1` (reroll 1s)
-  - `3d6ro<2` (reroll once if less than 2)
-  - `2d8rr1` (reroll 1s repeatedly)
+- [x] Add reroll mechanics ✅
+  - `4d6r1` (reroll 1s - exploding) ✅
+  - `3d6ro<2` (reroll once if less than 2) ✅
+  - `2d8rr1` (reroll 1s repeatedly) ✅
+  - Also supports: `r>6`, `ro>=4`, `rr<=3`
+
+**Implementation Notes**: 
+- Added recursive descent parser with proper mathematical precedence
+- Enhanced DiceExpressionPart with support for nested expressions, conditionals, and rerolls
+- Full CLI integration with complex expression support
+- Comprehensive test suite with 57 test cases covering all features
+- Safety mechanisms to prevent infinite loops in recursive rerolls
 
 ### 3. Advanced Dice Mechanics 🎲
 **Status**: Not Started  
