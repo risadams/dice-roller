@@ -142,7 +142,7 @@ describe('DiceExpression', () => {
       expect(result).toBe(5);
     });
 
-    it('should respect operator precedence (left to right)', () => {
+    it('should respect mathematical operator precedence', () => {
       // Mock for predictable results
       const mockRandom = jest.fn().mockReturnValue(0.5);
       const originalRandom = Math.random;
@@ -150,10 +150,9 @@ describe('DiceExpression', () => {
 
       try {
         const expr = new DiceExpression('d6+2*3');
-        // Should be (4 + 2) * 3 = 18, not 4 + (2 * 3) = 10
-        // Note: Our implementation is left-to-right, not mathematical precedence
+        // Should be 4 + (2 * 3) = 10, with mathematical precedence
         const result = expr.evaluate();
-        expect(result).toBe(18);
+        expect(result).toBe(10);
       } finally {
         Math.random = originalRandom;
       }
@@ -188,6 +187,113 @@ describe('DiceExpression', () => {
     it('should return correct string representation', () => {
       const expr = new DiceExpression('3d6+5');
       expect(expr.toString()).toBe('3d6+5');
+    });
+  });
+
+  describe('parentheses support', () => {
+    it('should parse simple parentheses expressions', () => {
+      const expr = new DiceExpression('(3d6)');
+      const parts = expr.getParts();
+      expect(parts).toHaveLength(1);
+      expect(parts[0].type).toBe('parentheses');
+      expect(parts[0].subExpression).toHaveLength(1);
+      expect(parts[0].subExpression![0].type).toBe('dice');
+    });
+
+    it('should parse complex parentheses expressions', () => {
+      const expr = new DiceExpression('(2d6+3)*2');
+      const parts = expr.getParts();
+      expect(parts).toHaveLength(3);
+      expect(parts[0].type).toBe('parentheses');
+      expect(parts[1].operator).toBe('*');
+      expect(parts[2].type).toBe('constant');
+      expect(parts[2].value).toBe(2);
+    });
+
+    it('should parse nested parentheses', () => {
+      const expr = new DiceExpression('(2d6+(1d4*2))');
+      const parts = expr.getParts();
+      expect(parts).toHaveLength(1);
+      expect(parts[0].type).toBe('parentheses');
+      expect(parts[0].subExpression).toHaveLength(3);
+    });
+
+    it('should evaluate parentheses with correct precedence', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(0.5) // d6 = 4
+        .mockReturnValueOnce(0.5) // d6 = 4
+        .mockReturnValueOnce(0.5); // d4 = 3
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('(2d6+1d4)*2');
+        const result = expr.evaluate();
+        expect(result).toBe(22); // (4 + 4 + 3) * 2 = 22
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should evaluate nested parentheses correctly', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(0.5) // d6 = 4
+        .mockReturnValueOnce(0.5) // d6 = 4
+        .mockReturnValueOnce(0.5); // d4 = 3
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('2d6+(1d4*3)');
+        const result = expr.evaluate();
+        expect(result).toBe(17); // 4 + 4 + (3 * 3) = 17
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should handle dice inside parentheses for dice count', () => {
+      // This should parse but not evaluate because (1d4+2)d6 is not supported yet
+      expect(() => new DiceExpression('(1d4+2)d6')).toThrow('Unexpected token: d6');
+    });
+
+    it('should calculate min/max values for parentheses expressions', () => {
+      const expr = new DiceExpression('(2d6+3)*2');
+      expect(expr.getMinValue()).toBe(10); // (2 + 3) * 2 = 10
+      expect(expr.getMaxValue()).toBe(30); // (12 + 3) * 2 = 30
+    });
+
+    it('should handle parentheses toString correctly', () => {
+      const expr = new DiceExpression('(2d6+3)*2');
+      expect(expr.toString()).toBe('(2d6+3)*2');
+    });
+
+    it('should throw error for unmatched parentheses', () => {
+      expect(() => new DiceExpression('(2d6+3')).toThrow('Unmatched opening parenthesis');
+      expect(() => new DiceExpression('2d6+3)')).toThrow('Unexpected token: )');
+    });
+
+    it('should handle empty parentheses', () => {
+      expect(() => new DiceExpression('()')).toThrow('Unexpected end of expression');
+    });
+
+    it('should handle complex mathematical precedence with parentheses', () => {
+      const mockRandom = jest.fn().mockReturnValue(0.5); // All dice = middle value
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('d6+2*3+(d4*2)');
+        const result = expr.evaluate();
+        // d6 = 4, d4 = 3
+        // 4 + (2 * 3) + (3 * 2) = 4 + 6 + 6 = 16
+        expect(result).toBe(16);
+      } finally {
+        Math.random = originalRandom;
+      }
     });
   });
 });

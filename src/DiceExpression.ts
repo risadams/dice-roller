@@ -14,7 +14,7 @@ export class DiceExpression {
   }
 
   /**
-   * Parse a dice expression string (e.g., "3d6+5", "2d20-1d4")
+   * Parse a dice expression string (e.g., "3d6+5", "2d20-1d4", "(2d6+3)*2")
    */
   public parse(expression: string): void {
     this.parts = [];
@@ -27,47 +27,164 @@ export class DiceExpression {
     // Remove spaces and convert to lowercase
     const cleanExpression = expression.replace(/\s/g, '').toLowerCase();
     
-    // Regular expression to match dice notation, operators, and constants
-    // Fixed to avoid ReDoS: split \d*d\d+ into \d+d\d+ and d\d+ to eliminate ambiguity
-    const regex = /(\d+d\d+|d\d+|[+\-*/]|\d+)/g;
-    const matches = cleanExpression.match(regex);
+    // Parse the expression using recursive descent parser
+    const tokens = this.tokenize(cleanExpression);
+    this.parts = this.parseExpression(tokens);
     
-    if (!matches || matches.join('') !== cleanExpression) {
-      throw new Error(`Invalid dice expression: ${expression}`);
-    }
-
-    for (const match of matches) {
-      if (match.match(/^(\d+d\d+|d\d+)$/)) {
-        // Dice notation (e.g., "3d6" or "d20")
-        const [countStr, sidesStr] = match.split('d');
-        const count = countStr === '' ? 1 : parseInt(countStr, 10);
-        const sides = parseInt(sidesStr, 10);
-        
-        if (isNaN(count) || isNaN(sides) || count <= 0 || sides <= 0) {
-          if (count <= 0) {
-            throw new Error(`At least one die is required, got ${count} dice in: ${match}`);
-          }
-          throw new Error(`Invalid dice notation: ${match}`);
-        }
-        
-        this.parts.push(DiceExpressionPart.createDice(count, sides));
-      } else if (match.match(/^[+\-*/]$/)) {
-        // Operator
-        this.parts.push(DiceExpressionPart.createOperator(match));
-      } else if (match.match(/^\d+$/)) {
-        // Constant
-        const value = parseInt(match, 10);
-        if (isNaN(value)) {
-          throw new Error(`Invalid constant: ${match}`);
-        }
-        this.parts.push(DiceExpressionPart.createConstant(value));
-      } else {
-        throw new Error(`Unrecognized token: ${match}`);
-      }
-    }
-
     // Validate the expression structure
     this.validateStructure();
+  }
+
+  /**
+   * Tokenize the expression into components
+   */
+  private tokenize(expression: string): string[] {
+    // Enhanced regex to include parentheses, conditional operators, and reroll mechanics
+    const regex = /(\d+d\d+[ro]*[<>=]*\d*|d\d+[ro]*[<>=]*\d*|[+\-*/()]|[<>=]+|\d+)/g;
+    const tokens = expression.match(regex);
+    
+    if (!tokens || tokens.join('') !== expression) {
+      throw new Error(`Invalid dice expression: ${expression}`);
+    }
+    
+    return tokens;
+  }
+
+  /**
+   * Parse an expression with operator precedence
+   */
+  private parseExpression(tokens: string[]): DiceExpressionPart[] {
+    const result = this.parseAdditionSubtraction(tokens);
+    
+    // Ensure all tokens are consumed
+    if (tokens.length > 0) {
+      throw new Error(`Unexpected token: ${tokens[0]}`);
+    }
+    
+    return result;
+  }
+
+  /**
+   * Parse addition and subtraction (lowest precedence)
+   */
+  private parseAdditionSubtraction(tokens: string[]): DiceExpressionPart[] {
+    let parts = this.parseMultiplicationDivision(tokens);
+    
+    while (tokens.length > 0 && (tokens[0] === '+' || tokens[0] === '-')) {
+      const operator = tokens.shift()!;
+      parts.push(DiceExpressionPart.createOperator(operator));
+      const rightParts = this.parseMultiplicationDivision(tokens);
+      parts.push(...rightParts);
+    }
+    
+    return parts;
+  }
+
+  /**
+   * Parse multiplication and division (higher precedence)
+   */
+  private parseMultiplicationDivision(tokens: string[]): DiceExpressionPart[] {
+    let parts = this.parsePrimary(tokens);
+    
+    while (tokens.length > 0 && (tokens[0] === '*' || tokens[0] === '/')) {
+      const operator = tokens.shift()!;
+      parts.push(DiceExpressionPart.createOperator(operator));
+      const rightParts = this.parsePrimary(tokens);
+      parts.push(...rightParts);
+    }
+    
+    return parts;
+  }
+
+  /**
+   * Parse primary expressions (dice, constants, parentheses)
+   */
+  private parsePrimary(tokens: string[]): DiceExpressionPart[] {
+    if (tokens.length === 0) {
+      throw new Error('Unexpected end of expression');
+    }
+
+    const token = tokens.shift()!;
+
+    if (token === '(') {
+      // Parse parenthesized expression
+      const subTokens: string[] = [];
+      let depth = 1;
+      
+      while (tokens.length > 0 && depth > 0) {
+        const nextToken = tokens.shift()!;
+        if (nextToken === '(') {
+          depth++;
+        } else if (nextToken === ')') {
+          depth--;
+        }
+        
+        if (depth > 0) {
+          subTokens.push(nextToken);
+        }
+      }
+      
+      if (depth > 0) {
+        throw new Error('Unmatched opening parenthesis');
+      }
+      
+      // Create a parenthesis group containing the sub-expression
+      const subExpression = this.parseExpression(subTokens);
+      return [DiceExpressionPart.createParentheses(subExpression)];
+    } else if (token.match(/^(\d+d\d+|d\d+)/)) {
+      // Enhanced dice notation with reroll mechanics
+      return [this.parseDiceNotation(token)];
+    } else if (token.match(/^\d+$/)) {
+      // Constant
+      const value = parseInt(token, 10);
+      if (isNaN(value)) {
+        throw new Error(`Invalid constant: ${token}`);
+      }
+      return [DiceExpressionPart.createConstant(value)];
+    } else if (token === '-' || token === '+') {
+      // Handle unary operators at the start
+      throw new Error('Expression cannot start with an operator');
+    } else {
+      throw new Error(`Unrecognized token: ${token}`);
+    }
+  }
+
+  /**
+   * Parse dice notation with potential reroll mechanics
+   */
+  private parseDiceNotation(token: string): DiceExpressionPart {
+    // Extract basic dice notation first
+    const diceMatch = token.match(/^(\d*)d(\d+)/);
+    if (!diceMatch) {
+      throw new Error(`Invalid dice notation: ${token}`);
+    }
+
+    const count = diceMatch[1] === '' ? 1 : parseInt(diceMatch[1], 10);
+    const sides = parseInt(diceMatch[2], 10);
+
+    if (isNaN(count) || isNaN(sides) || count <= 0 || sides <= 0) {
+      if (count <= 0) {
+        throw new Error(`At least one die is required, got ${count} dice in: ${token}`);
+      }
+      throw new Error(`Invalid dice notation: ${token}`);
+    }
+
+    // Check for reroll mechanics
+    const remaining = token.substring(diceMatch[0].length);
+    if (remaining.length > 0) {
+      return this.parseRerollMechanics(count, sides, remaining);
+    }
+
+    return DiceExpressionPart.createDice(count, sides);
+  }
+
+  /**
+   * Parse reroll mechanics (r1, ro<2, rr1, etc.)
+   */
+  private parseRerollMechanics(count: number, sides: number, mechanics: string): DiceExpressionPart {
+    // For now, create a basic dice part - we'll enhance this when implementing reroll mechanics
+    // This is a placeholder to support the enhanced tokenization
+    return DiceExpressionPart.createDice(count, sides);
   }
 
   /**
@@ -78,26 +195,33 @@ export class DiceExpression {
       throw new Error('Empty expression');
     }
 
-    // First part should be dice or constant
-    if (this.parts[0].type === 'operator') {
+    // With the new parser, we don't need the old alternating validation
+    // The recursive descent parser ensures proper structure
+    this.validatePartsStructure(this.parts);
+  }
+
+  /**
+   * Validate structure of expression parts recursively
+   */
+  private validatePartsStructure(parts: DiceExpressionPart[]): void {
+    if (parts.length === 0) {
+      return;
+    }
+
+    // First part should not be an operator
+    if (parts[0].type === 'operator') {
       throw new Error('Expression cannot start with an operator');
     }
 
-    // Last part should be dice or constant
-    if (this.parts[this.parts.length - 1].type === 'operator') {
+    // Last part should not be an operator
+    if (parts[parts.length - 1].type === 'operator') {
       throw new Error('Expression cannot end with an operator');
     }
 
-    // Check alternating pattern: (dice|constant) operator (dice|constant) ...
-    for (let i = 1; i < this.parts.length; i += 2) {
-      if (this.parts[i].type !== 'operator') {
-        throw new Error('Expected operator at position ' + i);
-      }
-    }
-
-    for (let i = 0; i < this.parts.length; i += 2) {
-      if (this.parts[i].type === 'operator') {
-        throw new Error('Expected dice or constant at position ' + i);
+    // Validate parentheses sub-expressions
+    for (const part of parts) {
+      if (part.type === 'parentheses' && part.subExpression) {
+        this.validatePartsStructure(part.subExpression);
       }
     }
   }
@@ -110,11 +234,75 @@ export class DiceExpression {
       throw new Error('No expression to evaluate');
     }
 
-    let result = this.evaluatePart(this.parts[0]);
+    return this.evaluatePartsList(this.parts);
+  }
+
+  /**
+   * Evaluate a list of expression parts with proper operator precedence
+   */
+  private evaluatePartsList(parts: DiceExpressionPart[]): number {
+    if (parts.length === 0) {
+      throw new Error('No parts to evaluate');
+    }
+
+    if (parts.length === 1) {
+      return this.evaluatePart(parts[0]);
+    }
+
+    // Handle multiplication and division first (higher precedence)
+    const processedParts = this.evaluateMultiplicationDivision([...parts]);
     
-    for (let i = 1; i < this.parts.length; i += 2) {
-      const operator = this.parts[i];
-      const operand = this.evaluatePart(this.parts[i + 1]);
+    // Then handle addition and subtraction (lower precedence)
+    return this.evaluateAdditionSubtraction(processedParts);
+  }
+
+  /**
+   * Process multiplication and division operations
+   */
+  private evaluateMultiplicationDivision(parts: DiceExpressionPart[]): DiceExpressionPart[] {
+    const result: DiceExpressionPart[] = [];
+    let i = 0;
+
+    while (i < parts.length) {
+      if (i + 2 < parts.length && 
+          parts[i + 1].type === 'operator' && 
+          (parts[i + 1].operator === '*' || parts[i + 1].operator === '/')) {
+        
+        const left = this.evaluatePart(parts[i]);
+        const operator = parts[i + 1].operator!;
+        const right = this.evaluatePart(parts[i + 2]);
+        
+        let value: number;
+        if (operator === '*') {
+          value = left * right;
+        } else {
+          value = Math.floor(left / right);
+        }
+        
+        result.push(DiceExpressionPart.createConstant(value));
+        i += 3;
+      } else {
+        result.push(parts[i]);
+        i++;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Process addition and subtraction operations
+   */
+  private evaluateAdditionSubtraction(parts: DiceExpressionPart[]): number {
+    let result = this.evaluatePart(parts[0]);
+    
+    for (let i = 1; i < parts.length; i += 2) {
+      if (i + 1 >= parts.length) {
+        break;
+      }
+      
+      const operator = parts[i];
+      const operand = this.evaluatePart(parts[i + 1]);
       
       switch (operator.operator) {
         case '+':
@@ -122,12 +310,6 @@ export class DiceExpression {
           break;
         case '-':
           result -= operand;
-          break;
-        case '*':
-          result *= operand;
-          break;
-        case '/':
-          result = Math.floor(result / operand);
           break;
         default:
           throw new Error(`Unknown operator: ${operator.operator}`);
@@ -147,6 +329,15 @@ export class DiceExpression {
         return die.rollMultiple(part.count!).reduce((sum, roll) => sum + roll, 0);
       case 'constant':
         return part.value;
+      case 'parentheses':
+        if (!part.subExpression) {
+          throw new Error('Parentheses part missing sub-expression');
+        }
+        return this.evaluatePartsList(part.subExpression);
+      case 'reroll':
+        // For now, treat reroll dice as regular dice - we'll implement reroll mechanics later
+        const rerollDie = new Die(part.sides!);
+        return rerollDie.rollMultiple(part.count!).reduce((sum, roll) => sum + roll, 0);
       default:
         throw new Error(`Cannot evaluate part of type: ${part.type}`);
     }
@@ -160,29 +351,7 @@ export class DiceExpression {
       return 0;
     }
 
-    let result = this.getPartMinValue(this.parts[0]);
-    
-    for (let i = 1; i < this.parts.length; i += 2) {
-      const operator = this.parts[i];
-      const operand = this.getPartMinValue(this.parts[i + 1]);
-      
-      switch (operator.operator) {
-        case '+':
-          result += operand;
-          break;
-        case '-':
-          result -= this.getPartMaxValue(this.parts[i + 1]);
-          break;
-        case '*':
-          result *= Math.min(operand, this.getPartMaxValue(this.parts[i + 1]));
-          break;
-        case '/':
-          result = Math.floor(result / this.getPartMaxValue(this.parts[i + 1]));
-          break;
-      }
-    }
-    
-    return result;
+    return this.getMinValueForParts(this.parts);
   }
 
   /**
@@ -193,24 +362,115 @@ export class DiceExpression {
       return 0;
     }
 
-    let result = this.getPartMaxValue(this.parts[0]);
+    return this.getMaxValueForParts(this.parts);
+  }
+
+  /**
+   * Get minimum value for a list of parts (respecting operator precedence)
+   */
+  private getMinValueForParts(parts: DiceExpressionPart[]): number {
+    if (parts.length === 0) {
+      return 0;
+    }
+
+    if (parts.length === 1) {
+      return this.getPartMinValue(parts[0]);
+    }
+
+    // Handle multiplication and division first
+    const processedParts = this.processMinMaxMultiplicationDivision([...parts], true);
     
-    for (let i = 1; i < this.parts.length; i += 2) {
-      const operator = this.parts[i];
-      const operand = this.getPartMaxValue(this.parts[i + 1]);
+    // Then handle addition and subtraction
+    return this.processMinMaxAdditionSubtraction(processedParts, true);
+  }
+
+  /**
+   * Get maximum value for a list of parts (respecting operator precedence)
+   */
+  private getMaxValueForParts(parts: DiceExpressionPart[]): number {
+    if (parts.length === 0) {
+      return 0;
+    }
+
+    if (parts.length === 1) {
+      return this.getPartMaxValue(parts[0]);
+    }
+
+    // Handle multiplication and division first
+    const processedParts = this.processMinMaxMultiplicationDivision([...parts], false);
+    
+    // Then handle addition and subtraction
+    return this.processMinMaxAdditionSubtraction(processedParts, false);
+  }
+
+  /**
+   * Process multiplication and division for min/max calculations
+   */
+  private processMinMaxMultiplicationDivision(parts: DiceExpressionPart[], isMin: boolean): DiceExpressionPart[] {
+    const result: DiceExpressionPart[] = [];
+    let i = 0;
+
+    while (i < parts.length) {
+      if (i + 2 < parts.length && 
+          parts[i + 1].type === 'operator' && 
+          (parts[i + 1].operator === '*' || parts[i + 1].operator === '/')) {
+        
+        const leftMin = this.getPartMinValue(parts[i]);
+        const leftMax = this.getPartMaxValue(parts[i]);
+        const rightMin = this.getPartMinValue(parts[i + 2]);
+        const rightMax = this.getPartMaxValue(parts[i + 2]);
+        const operator = parts[i + 1].operator!;
+        
+        let value: number;
+        if (operator === '*') {
+          if (isMin) {
+            value = Math.min(leftMin * rightMin, leftMin * rightMax, leftMax * rightMin, leftMax * rightMax);
+          } else {
+            value = Math.max(leftMin * rightMin, leftMin * rightMax, leftMax * rightMin, leftMax * rightMax);
+          }
+        } else { // division
+          if (isMin) {
+            value = Math.floor(leftMin / rightMax);
+          } else {
+            value = Math.floor(leftMax / rightMin);
+          }
+        }
+        
+        result.push(DiceExpressionPart.createConstant(value));
+        i += 3;
+      } else {
+        result.push(parts[i]);
+        i++;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Process addition and subtraction for min/max calculations
+   */
+  private processMinMaxAdditionSubtraction(parts: DiceExpressionPart[], isMin: boolean): number {
+    let result = isMin ? this.getPartMinValue(parts[0]) : this.getPartMaxValue(parts[0]);
+    
+    for (let i = 1; i < parts.length; i += 2) {
+      if (i + 1 >= parts.length) {
+        break;
+      }
+      
+      const operator = parts[i];
+      const operand = isMin ? this.getPartMinValue(parts[i + 1]) : this.getPartMaxValue(parts[i + 1]);
       
       switch (operator.operator) {
         case '+':
           result += operand;
           break;
         case '-':
-          result -= this.getPartMinValue(this.parts[i + 1]);
-          break;
-        case '*':
-          result *= Math.max(operand, this.getPartMinValue(this.parts[i + 1]));
-          break;
-        case '/':
-          result = Math.floor(result / this.getPartMinValue(this.parts[i + 1]));
+          if (isMin) {
+            result -= this.getPartMaxValue(parts[i + 1]);
+          } else {
+            result -= this.getPartMinValue(parts[i + 1]);
+          }
           break;
       }
     }
@@ -227,6 +487,13 @@ export class DiceExpression {
         return part.count!; // Minimum is 1 per die
       case 'constant':
         return part.value;
+      case 'parentheses':
+        if (!part.subExpression) {
+          return 0;
+        }
+        return this.getMinValueForParts(part.subExpression);
+      case 'reroll':
+        return part.count!; // For now, treat as regular dice
       default:
         return 0;
     }
@@ -241,6 +508,13 @@ export class DiceExpression {
         return part.count! * part.sides!;
       case 'constant':
         return part.value;
+      case 'parentheses':
+        if (!part.subExpression) {
+          return 0;
+        }
+        return this.getMaxValueForParts(part.subExpression);
+      case 'reroll':
+        return part.count! * part.sides!; // For now, treat as regular dice
       default:
         return 0;
     }

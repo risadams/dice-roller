@@ -37,8 +37,10 @@ Examples:
   npx @risadams/dice-roller "3d6+5"          Roll 3d6+5 (shows result only)
   npx @risadams/dice-roller "3d6+5" --verbose  Roll 3d6+5 with details
   npx @risadams/dice-roller "2d20+1d4-2"     Roll complex expression
+  npx @risadams/dice-roller "(2d6+3)*2"      Roll with parentheses for precedence
   npx @risadams/dice-roller roll d20         Roll a d20
   npx @risadams/dice-roller roll 4d6 -v      Roll 4d6 with verbose output
+  npx @risadams/dice-roller roll "(3d6+2)*2" Roll complex expression with roll command
   npx @risadams/dice-roller success 8 10 6   Roll 8d10, count successes >= 6
   npx @risadams/dice-roller success 6 6 5 --verbose  Shadowrun-style pool
   npx @risadams/dice-roller success 5 10 7 --botch 1 --double 10 --count-botches  World of Darkness
@@ -106,8 +108,9 @@ function rollDice(dice: string) {
   try {
     const roller = new Roller();
     
-    // Parse dice notation (e.g., "d20", "3d6")
+    // Parse dice notation (e.g., "d20", "3d6") or complex expressions with parentheses
     if (dice.match(/^\d*d\d+$/)) {
+      // Simple dice notation - use existing logic
       if (isVerbose) {
         const detailedResult = roller.rollExpressionDetailed(dice);
         console.log(`🎲 Rolling ${dice}: ${detailedResult.result}`);
@@ -123,9 +126,22 @@ function rollDice(dice: string) {
         console.log(result);
       }
     } else {
-      console.error(`❌ Invalid dice notation: ${dice}`);
-      console.log('Use format like: d20, 3d6, 2d8, etc.');
-      process.exit(1);
+      // Try to parse as a complex expression (with parentheses, etc.)
+      try {
+        const expression = new DiceExpression(dice);
+        if (isVerbose) {
+          const detailedResult = roller.rollExpressionDetailed(dice);
+          console.log(`🎲 Rolling ${dice}: ${detailedResult.result}`);
+          console.log(`📈 Range: ${detailedResult.minValue}-${detailedResult.maxValue}`);
+        } else {
+          const result = expression.evaluate();
+          console.log(result);
+        }
+      } catch (expressionError) {
+        console.error(`❌ Invalid dice notation: ${dice}`);
+        console.log('Use format like: d20, 3d6, 2d8, (2d6+3)*2, etc.');
+        process.exit(1);
+      }
     }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
