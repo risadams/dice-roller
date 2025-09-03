@@ -150,7 +150,7 @@ export class DiceExpression {
   }
 
   /**
-   * Parse dice notation with potential reroll mechanics
+   * Parse dice notation with potential reroll mechanics and conditional operators
    */
   private parseDiceNotation(token: string): DiceExpressionPart {
     // Extract basic dice notation first
@@ -169,9 +169,23 @@ export class DiceExpression {
       throw new Error(`Invalid dice notation: ${token}`);
     }
 
-    // Check for reroll mechanics
+    // Check for conditional operators (e.g., 3d6>10, 4d6>=4)
     const remaining = token.substring(diceMatch[0].length);
     if (remaining.length > 0) {
+      const conditionalMatch = remaining.match(/^([><=]+)(\d+)/);
+      if (conditionalMatch) {
+        const operator = conditionalMatch[1];
+        const threshold = parseInt(conditionalMatch[2], 10);
+        
+        // Validate operator
+        if (!['>', '>=', '<', '<=', '=', '=='].includes(operator)) {
+          throw new Error(`Invalid conditional operator: ${operator}`);
+        }
+        
+        return DiceExpressionPart.createConditionalDice(count, sides, operator, threshold);
+      }
+      
+      // Check for reroll mechanics (for future implementation)
       return this.parseRerollMechanics(count, sides, remaining);
     }
 
@@ -334,6 +348,13 @@ export class DiceExpression {
           throw new Error('Parentheses part missing sub-expression');
         }
         return this.evaluatePartsList(part.subExpression);
+      case 'conditional':
+        if (part.count && part.sides) {
+          // Conditional dice - count successes
+          return this.evaluateConditionalDice(part);
+        } else {
+          throw new Error('Standalone conditional operators are not supported in expressions');
+        }
       case 'reroll':
         // For now, treat reroll dice as regular dice - we'll implement reroll mechanics later
         const rerollDie = new Die(part.sides!);
@@ -341,6 +362,42 @@ export class DiceExpression {
       default:
         throw new Error(`Cannot evaluate part of type: ${part.type}`);
     }
+  }
+
+  /**
+   * Evaluate conditional dice and count successes
+   */
+  private evaluateConditionalDice(part: DiceExpressionPart): number {
+    const die = new Die(part.sides!);
+    const rolls = die.rollMultiple(part.count!);
+    const threshold = part.threshold!;
+    const condition = part.condition!;
+    
+    let successes = 0;
+    for (const roll of rolls) {
+      switch (condition) {
+        case '>':
+          if (roll > threshold) successes++;
+          break;
+        case '>=':
+          if (roll >= threshold) successes++;
+          break;
+        case '<':
+          if (roll < threshold) successes++;
+          break;
+        case '<=':
+          if (roll <= threshold) successes++;
+          break;
+        case '=':
+        case '==':
+          if (roll === threshold) successes++;
+          break;
+        default:
+          throw new Error(`Unknown conditional operator: ${condition}`);
+      }
+    }
+    
+    return successes;
   }
 
   /**
@@ -492,6 +549,12 @@ export class DiceExpression {
           return 0;
         }
         return this.getMinValueForParts(part.subExpression);
+      case 'conditional':
+        if (part.count && part.sides) {
+          // For conditional dice, minimum successes is 0
+          return 0;
+        }
+        return 0;
       case 'reroll':
         return part.count!; // For now, treat as regular dice
       default:
@@ -513,6 +576,13 @@ export class DiceExpression {
           return 0;
         }
         return this.getMaxValueForParts(part.subExpression);
+      case 'conditional':
+        if (part.count && part.sides) {
+          // For conditional dice, maximum successes is the number of dice
+          // (assuming all dice could potentially meet the condition)
+          return part.count!;
+        }
+        return 0;
       case 'reroll':
         return part.count! * part.sides!; // For now, treat as regular dice
       default:
