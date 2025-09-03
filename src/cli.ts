@@ -6,8 +6,9 @@ import { DicePresets } from './CustomDie';
 
 const version = '1.1.2';
 
-// Global flag for verbose output
+// Global flags for output modes
 let isVerbose = false;
+let isExplain = false;
 
 function showHelp() {
   console.log(`
@@ -29,6 +30,7 @@ Usage:
 
 Flags:
   --verbose, -v                         Show detailed output including intermediate rolls
+  --explain, -e                         Show step-by-step explanation of parsing and evaluation
   --botch <value>                       Value that counts as botch for success pools
   --double <value>                      Value that counts as double success
   --count-botches                       Subtract botches from successes
@@ -36,6 +38,7 @@ Flags:
 Examples:
   npx @risadams/dice-roller "3d6+5"          Roll 3d6+5 (shows result only)
   npx @risadams/dice-roller "3d6+5" --verbose  Roll 3d6+5 with details
+  npx @risadams/dice-roller "3d6+5" --explain  Roll 3d6+5 with step-by-step explanation
   npx @risadams/dice-roller "2d20+1d4-2"     Roll complex expression
   npx @risadams/dice-roller "(2d6+3)*2"      Roll with parentheses for precedence
   npx @risadams/dice-roller roll d20         Roll a d20
@@ -76,27 +79,49 @@ function showVersion() {
 
 function rollExpression(expression: string) {
   try {
-    const roller = new Roller();
-    const result = roller.rollExpressionDetailed(expression);
-    
-    if (isVerbose) {
-      console.log(`🎲 Rolling: ${expression}`);
-      console.log(`📊 Result: ${result.result}`);
-      console.log(`📈 Range: ${result.minValue}-${result.maxValue}`);
+    if (isExplain) {
+      // Use DiceExpression for detailed explanation
+      const diceExpression = new DiceExpression(expression);
+      const explanation = diceExpression.evaluateWithExplanation(expression);
       
-      // Show detailed breakdown for complex expressions
-      if (result.parts.length > 1) {
-        console.log(`🔍 Breakdown:`);
-        result.parts.forEach((part, index) => {
-          if (part.type === 'dice') {
-            console.log(`   ${part.value}: ${part.result} ${part.rolls ? `(${part.rolls.join(', ')})` : ''}`);
-          } else if (part.type === 'constant') {
-            console.log(`   +${part.value}`);
-          }
-        });
-      }
+      console.log(`🎯 Expression: ${explanation.originalExpression}`);
+      console.log(`🔍 Tokenization: [${explanation.tokenization.join(', ')}]`);
+      console.log(`📝 Parsing: ${explanation.parsing}`);
+      console.log('');
+      console.log('📊 Step-by-step evaluation:');
+      explanation.steps.forEach(step => {
+        console.log(`  ${step.step}. ${step.operation}`);
+        console.log(`     → ${step.description}`);
+        if (step.details) {
+          console.log(`     📋 ${step.details}`);
+        }
+        console.log('');
+      });
+      console.log(`🏆 Final Result: ${explanation.finalResult}`);
     } else {
-      console.log(result.result);
+      // Use original Roller for standard output
+      const roller = new Roller();
+      const result = roller.rollExpressionDetailed(expression);
+      
+      if (isVerbose) {
+        console.log(`🎲 Rolling: ${expression}`);
+        console.log(`📊 Result: ${result.result}`);
+        console.log(`📈 Range: ${result.minValue}-${result.maxValue}`);
+        
+        // Show detailed breakdown for complex expressions
+        if (result.parts.length > 1) {
+          console.log(`🔍 Breakdown:`);
+          result.parts.forEach((part, index) => {
+            if (part.type === 'dice') {
+              console.log(`   ${part.value}: ${part.result} ${part.rolls ? `(${part.rolls.join(', ')})` : ''}`);
+            } else if (part.type === 'constant') {
+              console.log(`   +${part.value}`);
+            }
+          });
+        }
+      } else {
+        console.log(result.result);
+      }
     }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -109,8 +134,8 @@ function rollDice(dice: string) {
     const roller = new Roller();
     
     // Parse dice notation (e.g., "d20", "3d6") or complex expressions with parentheses
-    if (dice.match(/^\d*d\d+$/)) {
-      // Simple dice notation - use existing logic
+    if (dice.match(/^\d*d\d+$/) && !isExplain) {
+      // Simple dice notation - use existing logic (but not for explain mode)
       if (isVerbose) {
         const detailedResult = roller.rollExpressionDetailed(dice);
         console.log(`🎲 Rolling ${dice}: ${detailedResult.result}`);
@@ -129,14 +154,34 @@ function rollDice(dice: string) {
       // Try to parse as a complex expression (with parentheses, etc.)
       try {
         const expression = new DiceExpression(dice);
-        const result = expression.evaluate();
         
-        if (isVerbose) {
-          console.log(`🎲 Rolling ${dice}: ${result}`);
-          console.log(`📈 Range: ${expression.minValue}-${expression.maxValue}`);
-          console.log(`📊 Expression: ${expression.toString()}`);
+        if (isExplain) {
+          // Show detailed step-by-step explanation
+          const explanation = expression.evaluateWithExplanation(dice);
+          console.log(`🎯 Expression: ${explanation.originalExpression}`);
+          console.log(`🔍 Tokenization: [${explanation.tokenization.join(', ')}]`);
+          console.log(`📝 Parsing: ${explanation.parsing}`);
+          console.log('');
+          console.log('📊 Step-by-step evaluation:');
+          explanation.steps.forEach(step => {
+            console.log(`  ${step.step}. ${step.operation}`);
+            console.log(`     → ${step.description}`);
+            if (step.details) {
+              console.log(`     📋 ${step.details}`);
+            }
+            console.log('');
+          });
+          console.log(`🏆 Final Result: ${explanation.finalResult}`);
         } else {
-          console.log(result);
+          const result = expression.evaluate();
+          
+          if (isVerbose) {
+            console.log(`🎲 Rolling ${dice}: ${result}`);
+            console.log(`📈 Range: ${expression.minValue}-${expression.maxValue}`);
+            console.log(`📊 Expression: ${expression.toString()}`);
+          } else {
+            console.log(result);
+          }
         }
       } catch (expressionError) {
         console.error(`❌ Invalid dice notation: ${dice}`);
@@ -333,7 +378,18 @@ function rollScrumDie() {
     const scrumDie = DicePresets.createScrumPlanningDie();
     const result = scrumDie.roll();
     
-    if (isVerbose) {
+    if (isExplain) {
+      console.log(`🎯 Expression: scrum`);
+      console.log(`🔍 Tokenization: [scrum]`);
+      console.log(`📝 Parsing: Scrum planning die with custom values`);
+      console.log('');
+      console.log('📊 Step-by-step evaluation:');
+      console.log(`  1. Scrum Die = ${result}`);
+      console.log(`     → roll 1 custom Scrum planning die`);
+      console.log(`     📋 Possible values: [1, 2, 3, 5, 8, 13, 20, ?]`);
+      console.log('');
+      console.log(`🏆 Final Result: ${result}`);
+    } else if (isVerbose) {
       console.log(`🎲 Rolling Scrum Planning Die: ${result}`);
       console.log(`📋 Possible values: 1, 2, 3, 5, 8, 13, 20, ?`);
     } else {
@@ -350,7 +406,18 @@ function rollFibonacciDie() {
     const fibDie = DicePresets.createFibonacciDie();
     const result = fibDie.roll();
     
-    if (isVerbose) {
+    if (isExplain) {
+      console.log(`🎯 Expression: fibonacci`);
+      console.log(`🔍 Tokenization: [fibonacci]`);
+      console.log(`📝 Parsing: Fibonacci sequence die with custom values`);
+      console.log('');
+      console.log('📊 Step-by-step evaluation:');
+      console.log(`  1. Fibonacci Die = ${result}`);
+      console.log(`     → roll 1 custom Fibonacci sequence die`);
+      console.log(`     📋 Possible values: [0, 1, 1, 2, 3, 5, 8, 13]`);
+      console.log('');
+      console.log(`🏆 Final Result: ${result}`);
+    } else if (isVerbose) {
       console.log(`🎲 Rolling Fibonacci Die: ${result}`);
       console.log(`📋 Possible values: 0, 1, 1, 2, 3, 5, 8, 13`);
     } else {
@@ -367,7 +434,18 @@ function flipCoin() {
     const coinDie = DicePresets.createCoinDie();
     const result = coinDie.roll();
     
-    if (isVerbose) {
+    if (isExplain) {
+      console.log(`🎯 Expression: coin`);
+      console.log(`🔍 Tokenization: [coin]`);
+      console.log(`📝 Parsing: Binary coin flip with two outcomes`);
+      console.log('');
+      console.log('📊 Step-by-step evaluation:');
+      console.log(`  1. Coin Flip = ${result}`);
+      console.log(`     → flip 1 standard coin`);
+      console.log(`     📋 Possible values: [Heads, Tails]`);
+      console.log('');
+      console.log(`🏆 Final Result: ${result}`);
+    } else if (isVerbose) {
       console.log(`🪙 Flipping coin: ${result}`);
       console.log(`📋 Possible values: Heads, Tails`);
     } else {
@@ -384,7 +462,18 @@ function rollMagic8Ball() {
     const magic8Die = DicePresets.createMagic8BallDie();
     const result = magic8Die.roll();
     
-    if (isVerbose) {
+    if (isExplain) {
+      console.log(`🎯 Expression: magic8`);
+      console.log(`🔍 Tokenization: [magic8]`);
+      console.log(`📝 Parsing: Magic 8-Ball die with 8 mystical responses`);
+      console.log('');
+      console.log('📊 Step-by-step evaluation:');
+      console.log(`  1. Magic 8-Ball = "${result}"`);
+      console.log(`     → roll 1 mystical Magic 8-Ball`);
+      console.log(`     📋 Possible responses: [Yes, No, Maybe, Ask again later, Definitely, Absolutely not, Signs point to yes, Cannot predict now]`);
+      console.log('');
+      console.log(`🏆 Final Result: ${result}`);
+    } else if (isVerbose) {
       console.log(`🎱 Magic 8-Ball says: ${result}`);
       console.log(`📋 Possible responses: Yes, No, Maybe, Ask again later, Definitely, Absolutely not, Signs point to yes, Cannot predict now`);
     } else {
@@ -401,7 +490,18 @@ function rollYesNo() {
     const yesNoDie = DicePresets.createTextDie(['Yes', 'No']);
     const result = yesNoDie.roll();
     
-    if (isVerbose) {
+    if (isExplain) {
+      console.log(`🎯 Expression: yesno`);
+      console.log(`🔍 Tokenization: [yesno]`);
+      console.log(`📝 Parsing: Binary decision die for yes/no questions`);
+      console.log('');
+      console.log('📊 Step-by-step evaluation:');
+      console.log(`  1. Yes/No Die = ${result}`);
+      console.log(`     → roll 1 binary decision die`);
+      console.log(`     📋 Possible values: [Yes, No]`);
+      console.log('');
+      console.log(`🏆 Final Result: ${result}`);
+    } else if (isVerbose) {
       console.log(`🎯 Decision: ${result}`);
       console.log(`📋 Possible values: Yes, No`);
     } else {
@@ -453,6 +553,13 @@ const verboseIndex = args.findIndex(arg => arg === '--verbose' || arg === '-v');
 if (verboseIndex !== -1) {
   isVerbose = true;
   args.splice(verboseIndex, 1);
+}
+
+// Parse explain flag
+const explainIndex = args.findIndex(arg => arg === '--explain' || arg === '-e');
+if (explainIndex !== -1) {
+  isExplain = true;
+  args.splice(explainIndex, 1);
 }
 
 if (args.length === 0) {
