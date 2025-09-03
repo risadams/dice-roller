@@ -695,18 +695,11 @@ describe('DiceExpression', () => {
       const originalRandom = Math.random;
       Math.random = mockRandom;
 
-      const originalWarn = console.warn;
-      console.warn = jest.fn(); // Mock console.warn
-
       try {
         const expr = new DiceExpression('1d6rr1');
-        const result = expr.evaluate();
-        // Should eventually stop and return 1 after hitting the reroll limit
-        expect(result).toBe(1);
-        expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Maximum rerolls'));
+        expect(() => expr.evaluate()).toThrow('Maximum rerolls (100) reached for safety');
       } finally {
         Math.random = originalRandom;
-        console.warn = originalWarn;
       }
     });
   });

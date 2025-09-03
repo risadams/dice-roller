@@ -2,10 +2,28 @@ import { Die } from './Die';
 import { DiceExpressionPart } from './DiceExpressionPart';
 
 /**
+ * Configuration constants for dice expression evaluation
+ */
+const DICE_EXPRESSION_CONFIG = {
+  /** Maximum number of rerolls allowed before stopping to prevent infinite loops */
+  MAX_REROLLS: 100,
+  /** Maximum expression length to prevent ReDoS attacks */
+  MAX_EXPRESSION_LENGTH: 1000,
+} as const;
+
+/**
  * Represents a dice expression that can be parsed and evaluated
  */
 export class DiceExpression {
   private parts: DiceExpressionPart[] = [];
+  private static config = DICE_EXPRESSION_CONFIG;
+  
+  /**
+   * Configure dice expression limits
+   */
+  public static configure(options: Partial<typeof DICE_EXPRESSION_CONFIG>): void {
+    DiceExpression.config = { ...DiceExpression.config, ...options };
+  }
   
   constructor(expression?: string) {
     if (expression) {
@@ -20,8 +38,8 @@ export class DiceExpression {
     this.parts = [];
     
     // Validate input length to prevent ReDoS attacks
-    if (expression.length > 1000) {
-      throw new Error('Dice expression too long (maximum 1000 characters)');
+    if (expression.length > DiceExpression.config.MAX_EXPRESSION_LENGTH) {
+      throw new Error(`Dice expression too long (maximum ${DiceExpression.config.MAX_EXPRESSION_LENGTH} characters)`);
     }
     
     // Remove spaces and convert to lowercase
@@ -462,7 +480,7 @@ export class DiceExpression {
     let roll = die.roll();
     let total = roll;
     let rerollCount = 0;
-    const maxRerolls = 100; // Safety limit to prevent infinite loops
+    const maxRerolls = DiceExpression.config.MAX_REROLLS;
 
     while (this.shouldReroll(roll, condition) && rerollCount < maxRerolls) {
       if (rerollType === 'exploding') {
@@ -484,7 +502,7 @@ export class DiceExpression {
     }
 
     if (rerollCount >= maxRerolls) {
-      console.warn(`Maximum rerolls (${maxRerolls}) reached for safety. Stopping rerolls.`);
+      throw new Error(`Maximum rerolls (${maxRerolls}) reached for safety. This may indicate an infinite reroll condition.`);
     }
 
     return total;
@@ -540,6 +558,20 @@ export class DiceExpression {
     }
 
     return this.getMaxValueForParts(this.parts);
+  }
+
+  /**
+   * Getter for minimum value
+   */
+  public get minValue(): number {
+    return this.getMinValue();
+  }
+
+  /**
+   * Getter for maximum value
+   */
+  public get maxValue(): number {
+    return this.getMaxValue();
   }
 
   /**
