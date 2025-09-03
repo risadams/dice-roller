@@ -73,6 +73,13 @@ export class DiceExpressionPart {
   }
 
   /**
+   * Create a conditional dice part (e.g., "3d6>10" - count successes)
+   */
+  public static createConditionalDice(count: number, sides: number, condition: string, threshold: number): DiceExpressionPart {
+    return new DiceExpressionPart('conditional', 0, undefined, count, sides, undefined, condition, threshold);
+  }
+
+  /**
    * Create a reroll part with mechanics
    */
   public static createReroll(
@@ -99,7 +106,13 @@ export class DiceExpressionPart {
       case 'parentheses':
         return `(${this.subExpression?.map(p => p.toString()).join('') || ''})`;
       case 'conditional':
-        return `${this.condition}${this.threshold}`;
+        if (this.count && this.sides) {
+          // Conditional dice (e.g., "3d6>10")
+          return `${this.count}d${this.sides}${this.condition}${this.threshold}`;
+        } else {
+          // Standalone conditional (e.g., ">10")
+          return `${this.condition}${this.threshold}`;
+        }
       case 'reroll':
         const rerollStr = this.rerollType === 'once' ? 'ro' : 
                          this.rerollType === 'recursive' ? 'rr' : 'r';

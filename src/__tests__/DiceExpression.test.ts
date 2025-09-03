@@ -296,4 +296,206 @@ describe('DiceExpression', () => {
       }
     });
   });
+
+  describe('conditional operators', () => {
+    it('should parse conditional dice expressions', () => {
+      const expr = new DiceExpression('3d6>4');
+      const parts = expr.getParts();
+      expect(parts).toHaveLength(1);
+      expect(parts[0].type).toBe('conditional');
+      expect(parts[0].count).toBe(3);
+      expect(parts[0].sides).toBe(6);
+      expect(parts[0].condition).toBe('>');
+      expect(parts[0].threshold).toBe(4);
+    });
+
+    it('should parse different conditional operators', () => {
+      const testCases = [
+        { expr: '4d6>=4', condition: '>=', threshold: 4 },
+        { expr: '2d8<3', condition: '<', threshold: 3 },
+        { expr: '5d10<=6', condition: '<=', threshold: 6 },
+        { expr: '3d6=4', condition: '=', threshold: 4 },
+        { expr: '2d20==15', condition: '==', threshold: 15 },
+      ];
+
+      testCases.forEach(testCase => {
+        const expr = new DiceExpression(testCase.expr);
+        const parts = expr.getParts();
+        expect(parts[0].condition).toBe(testCase.condition);
+        expect(parts[0].threshold).toBe(testCase.threshold);
+      });
+    });
+
+    it('should evaluate conditional dice and count successes', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(0.8) // d6 = 5
+        .mockReturnValueOnce(0.5) // d6 = 4  
+        .mockReturnValueOnce(0.2); // d6 = 2
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('3d6>3');
+        const result = expr.evaluate();
+        // Rolls: 5, 4, 2 - two are > 3
+        expect(result).toBe(2);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should handle >= conditional operator', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(0.8) // d6 = 5
+        .mockReturnValueOnce(0.5) // d6 = 4
+        .mockReturnValueOnce(0.5); // d6 = 4
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('3d6>=4');
+        const result = expr.evaluate();
+        // Rolls: 5, 4, 4 - all three are >= 4
+        expect(result).toBe(3);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should handle < conditional operator', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(0.1) // d6 = 1
+        .mockReturnValueOnce(0.3) // d6 = 2
+        .mockReturnValueOnce(0.8); // d6 = 5
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('3d6<4');
+        const result = expr.evaluate();
+        // Rolls: 1, 2, 5 - two are < 4
+        expect(result).toBe(2);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should handle = conditional operator', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(0.5) // d6 = 4
+        .mockReturnValueOnce(0.5) // d6 = 4
+        .mockReturnValueOnce(0.8); // d6 = 5
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('3d6=4');
+        const result = expr.evaluate();
+        // Rolls: 4, 4, 5 - two are = 4
+        expect(result).toBe(2);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should handle conditional dice in complex expressions', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(0.8) // d6 = 5
+        .mockReturnValueOnce(0.8) // d6 = 5
+        .mockReturnValueOnce(0.5) // d8 = 5
+        .mockReturnValueOnce(0.3); // d8 = 3
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('2d6>4+2d8>=4');
+        const result = expr.evaluate();
+        // 2d6>4: rolls 5,5 - both > 4 = 2 successes
+        // 2d8>=4: rolls 5,3 - one >= 4 = 1 success
+        // Total: 2 + 1 = 3
+        expect(result).toBe(3);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should handle conditional dice with parentheses', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(0.8) // d6 = 5
+        .mockReturnValueOnce(0.8) // d6 = 5
+        .mockReturnValueOnce(0.5) // d4 = 3
+        .mockReturnValueOnce(0.8); // d4 = 4
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('(2d6>4+2d4>=3)*2');
+        const result = expr.evaluate();
+        // 2d6>4: rolls 5,5 - both > 4 = 2 successes
+        // 2d4>=3: rolls 3,4 - both >= 3 = 2 successes
+        // (2 + 2) * 2 = 8
+        expect(result).toBe(8);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should calculate correct min/max values for conditional dice', () => {
+      const expr = new DiceExpression('3d6>4');
+      expect(expr.getMinValue()).toBe(0); // No dice could succeed
+      expect(expr.getMaxValue()).toBe(3); // All dice could succeed
+    });
+
+    it('should handle conditional dice toString correctly', () => {
+      const expr = new DiceExpression('3d6>4');
+      expect(expr.toString()).toBe('3d6>4');
+    });
+
+    it('should handle multiple conditional operators in toString', () => {
+      const testCases = [
+        { expr: '4d6>=4', expected: '4d6>=4' },
+        { expr: '2d8<3', expected: '2d8<3' },
+        { expr: '5d10<=6', expected: '5d10<=6' },
+        { expr: '3d6=4', expected: '3d6=4' },
+        { expr: '2d20==15', expected: '2d20==15' },
+      ];
+
+      testCases.forEach(testCase => {
+        const expr = new DiceExpression(testCase.expr);
+        expect(expr.toString()).toBe(testCase.expected);
+      });
+    });
+
+    it('should throw error for invalid conditional operators', () => {
+      // != fails at tokenization level since ! isn't valid
+      expect(() => new DiceExpression('3d6!=4')).toThrow('Invalid dice expression');
+      // <> gets tokenized but is rejected as invalid conditional operator
+      expect(() => new DiceExpression('3d6<>4')).toThrow('Invalid conditional operator: <>');
+    });
+
+    it('should handle no successes correctly', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(0.1) // d6 = 1
+        .mockReturnValueOnce(0.2) // d6 = 2
+        .mockReturnValueOnce(0.3); // d6 = 2
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('3d6>5');
+        const result = expr.evaluate();
+        // Rolls: 1, 2, 2 - none are > 5
+        expect(result).toBe(0);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+  });
 });

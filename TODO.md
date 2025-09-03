@@ -27,13 +27,13 @@ This document outlines planned features and enhancements for the Dice Roller lib
 - Fixed random function propagation in `rollDice()` method
 
 ### 2. Expression Parser Enhancements 📝
-**Status**: Not Started  
+**Status**: In Progress  
 **Effort**: High  
 **Impact**: High - Greatly expands expression capabilities
 
-- [ ] Add parentheses support for complex expressions
-  - `(2d6+3)*2` 
-  - `3d(1d4+2)`
+- [x] Add parentheses support for complex expressions
+  - `(2d6+3)*2` ✅ 
+  - `3d(1d4+2)` (parsing works, dynamic dice count not yet implemented)
 - [ ] Implement conditional operators
   - `3d6>10` (count successes)
   - `4d6>=4` (meets threshold)
