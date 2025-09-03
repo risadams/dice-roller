@@ -129,12 +129,13 @@ function rollDice(dice: string) {
       // Try to parse as a complex expression (with parentheses, etc.)
       try {
         const expression = new DiceExpression(dice);
+        const result = expression.evaluate();
+        
         if (isVerbose) {
-          const detailedResult = roller.rollExpressionDetailed(dice);
-          console.log(`🎲 Rolling ${dice}: ${detailedResult.result}`);
-          console.log(`📈 Range: ${detailedResult.minValue}-${detailedResult.maxValue}`);
+          console.log(`🎲 Rolling ${dice}: ${result}`);
+          console.log(`📈 Range: ${expression.minValue}-${expression.maxValue}`);
+          console.log(`📊 Expression: ${expression.toString()}`);
         } else {
-          const result = expression.evaluate();
           console.log(result);
         }
       } catch (expressionError) {
