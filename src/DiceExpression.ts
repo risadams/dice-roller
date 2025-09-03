@@ -40,7 +40,8 @@ export class DiceExpression {
    */
   private tokenize(expression: string): string[] {
     // Enhanced regex to include parentheses, conditional operators, and reroll mechanics
-    const regex = /(\d+d\d+[ro]*[<>=]*\d*|d\d+[ro]*[<>=]*\d*|[+\-*/()]|[<>=]+|\d+)/g;
+    // Updated to handle complex reroll patterns like r1, ro<2, rr>=3
+    const regex = /(\d*d\d+(?:r[ro]*[<>=]*\d+|[<>=]+\d+)?|[+\-*/()]|[<>=]+|\d+)/g;
     const tokens = expression.match(regex);
     
     if (!tokens || tokens.join('') !== expression) {
@@ -169,10 +170,17 @@ export class DiceExpression {
       throw new Error(`Invalid dice notation: ${token}`);
     }
 
-    // Check for conditional operators (e.g., 3d6>10, 4d6>=4)
+    // Check what remains after the basic dice notation
     const remaining = token.substring(diceMatch[0].length);
     if (remaining.length > 0) {
-      const conditionalMatch = remaining.match(/^([><=]+)(\d+)/);
+      // Check for reroll mechanics first (r, ro, rr)
+      const rerollMatch = remaining.match(/^(r[ro]*[<>=]*\d+)/);
+      if (rerollMatch) {
+        return this.parseRerollMechanics(count, sides, rerollMatch[1]);
+      }
+      
+      // Check for conditional operators (>, >=, etc.)
+      const conditionalMatch = remaining.match(/^([<>=]+)(\d+)/);
       if (conditionalMatch) {
         const operator = conditionalMatch[1];
         const threshold = parseInt(conditionalMatch[2], 10);
@@ -185,8 +193,8 @@ export class DiceExpression {
         return DiceExpressionPart.createConditionalDice(count, sides, operator, threshold);
       }
       
-      // Check for reroll mechanics (for future implementation)
-      return this.parseRerollMechanics(count, sides, remaining);
+      // If we get here, it's an unrecognized modifier
+      throw new Error(`Unrecognized dice modifier: ${remaining}`);
     }
 
     return DiceExpressionPart.createDice(count, sides);
@@ -196,9 +204,41 @@ export class DiceExpression {
    * Parse reroll mechanics (r1, ro<2, rr1, etc.)
    */
   private parseRerollMechanics(count: number, sides: number, mechanics: string): DiceExpressionPart {
-    // For now, create a basic dice part - we'll enhance this when implementing reroll mechanics
-    // This is a placeholder to support the enhanced tokenization
-    return DiceExpressionPart.createDice(count, sides);
+    // Parse reroll patterns: r, ro, rr followed by condition
+    const rerollMatch = mechanics.match(/^(r|ro|rr)([<>=]*)(\d+)$/);
+    if (!rerollMatch) {
+      throw new Error(`Invalid reroll mechanics: ${mechanics}`);
+    }
+
+    const rerollTypeStr = rerollMatch[1];
+    const conditionOperator = rerollMatch[2] || '='; // Default to equality if no operator
+    const threshold = parseInt(rerollMatch[3], 10);
+
+    // Determine reroll type
+    let rerollType: 'once' | 'recursive' | 'exploding';
+    switch (rerollTypeStr) {
+      case 'r':
+        rerollType = 'exploding'; // Standard reroll (once, but keeps original behavior)
+        break;
+      case 'ro':
+        rerollType = 'once'; // Reroll once
+        break;
+      case 'rr':
+        rerollType = 'recursive'; // Reroll recursively
+        break;
+      default:
+        throw new Error(`Unknown reroll type: ${rerollTypeStr}`);
+    }
+
+    // Validate condition operator
+    if (!['', '=', '<', '>', '<=', '>='].includes(conditionOperator)) {
+      throw new Error(`Invalid reroll condition operator: ${conditionOperator}`);
+    }
+
+    // Build condition string
+    const rerollCondition = conditionOperator + threshold;
+
+    return DiceExpressionPart.createReroll(count, sides, rerollType, rerollCondition, threshold);
   }
 
   /**
@@ -356,9 +396,8 @@ export class DiceExpression {
           throw new Error('Standalone conditional operators are not supported in expressions');
         }
       case 'reroll':
-        // For now, treat reroll dice as regular dice - we'll implement reroll mechanics later
-        const rerollDie = new Die(part.sides!);
-        return rerollDie.rollMultiple(part.count!).reduce((sum, roll) => sum + roll, 0);
+        // Evaluate reroll dice
+        return this.evaluateRerollDice(part);
       default:
         throw new Error(`Cannot evaluate part of type: ${part.type}`);
     }
@@ -398,6 +437,87 @@ export class DiceExpression {
     }
     
     return successes;
+  }
+
+  /**
+   * Evaluate reroll dice with various reroll mechanics
+   */
+  private evaluateRerollDice(part: DiceExpressionPart): number {
+    const die = new Die(part.sides!);
+    const rerollCondition = part.rerollCondition!;
+    const rerollType = part.rerollType!;
+    let totalSum = 0;
+
+    for (let i = 0; i < part.count!; i++) {
+      totalSum += this.rollSingleDieWithRerolls(die, rerollCondition, rerollType);
+    }
+
+    return totalSum;
+  }
+
+  /**
+   * Roll a single die with reroll mechanics
+   */
+  private rollSingleDieWithRerolls(die: Die, condition: string, rerollType: 'once' | 'recursive' | 'exploding'): number {
+    let roll = die.roll();
+    let total = roll;
+    let rerollCount = 0;
+    const maxRerolls = 100; // Safety limit to prevent infinite loops
+
+    while (this.shouldReroll(roll, condition) && rerollCount < maxRerolls) {
+      if (rerollType === 'exploding') {
+        // Standard reroll: keep the original and add the reroll
+        roll = die.roll();
+        total += roll;
+      } else {
+        // Replace reroll: discard the original, use the new roll
+        roll = die.roll();
+        total = roll;
+      }
+      
+      rerollCount++;
+      
+      // For 'once' type, only reroll once
+      if (rerollType === 'once') {
+        break;
+      }
+    }
+
+    if (rerollCount >= maxRerolls) {
+      console.warn(`Maximum rerolls (${maxRerolls}) reached for safety. Stopping rerolls.`);
+    }
+
+    return total;
+  }
+
+  /**
+   * Check if a roll should trigger a reroll based on the condition
+   */
+  private shouldReroll(roll: number, condition: string): boolean {
+    // Parse condition string (e.g., "=1", "<2", ">=5")
+    const match = condition.match(/^([<>=]*)(\d+)$/);
+    if (!match) {
+      throw new Error(`Invalid reroll condition: ${condition}`);
+    }
+
+    const operator = match[1] || '='; // Default to equality
+    const threshold = parseInt(match[2], 10);
+
+    switch (operator) {
+      case '=':
+      case '':
+        return roll === threshold;
+      case '<':
+        return roll < threshold;
+      case '>':
+        return roll > threshold;
+      case '<=':
+        return roll <= threshold;
+      case '>=':
+        return roll >= threshold;
+      default:
+        throw new Error(`Unknown reroll operator: ${operator}`);
+    }
   }
 
   /**
@@ -556,7 +676,14 @@ export class DiceExpression {
         }
         return 0;
       case 'reroll':
-        return part.count!; // For now, treat as regular dice
+        // For reroll dice, minimum depends on the reroll type
+        if (part.rerollType === 'exploding') {
+          // Exploding dice add to the total, so minimum is still dice count
+          return part.count!;
+        } else {
+          // Replace rerolls have same minimum as regular dice
+          return part.count!;
+        }
       default:
         return 0;
     }
@@ -584,7 +711,16 @@ export class DiceExpression {
         }
         return 0;
       case 'reroll':
-        return part.count! * part.sides!; // For now, treat as regular dice
+        // For reroll dice, theoretical maximum is very high due to potential infinite rerolls
+        // We'll use a practical maximum based on expected behavior
+        if (part.rerollType === 'exploding') {
+          // Exploding dice can theoretically go very high, but we'll use a practical limit
+          // Assume average of 2 extra rolls per die that explodes
+          return part.count! * part.sides! * 3; // Conservative estimate
+        } else {
+          // Replace rerolls have same maximum as regular dice
+          return part.count! * part.sides!;
+        }
       default:
         return 0;
     }

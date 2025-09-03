@@ -498,4 +498,216 @@ describe('DiceExpression', () => {
       }
     });
   });
+
+  describe('reroll mechanics', () => {
+    it('should parse exploding dice expressions', () => {
+      const expr = new DiceExpression('3d6r6');
+      const parts = expr.getParts();
+      expect(parts).toHaveLength(1);
+      expect(parts[0].type).toBe('reroll');
+      expect(parts[0].count).toBe(3);
+      expect(parts[0].sides).toBe(6);
+      expect(parts[0].rerollType).toBe('exploding');
+      expect(parts[0].rerollCondition).toBe('=6');
+    });
+
+    it('should parse reroll once expressions', () => {
+      const expr = new DiceExpression('4d6ro1');
+      const parts = expr.getParts();
+      expect(parts).toHaveLength(1);
+      expect(parts[0].type).toBe('reroll');
+      expect(parts[0].rerollType).toBe('once');
+      expect(parts[0].rerollCondition).toBe('=1');
+    });
+
+    it('should parse recursive reroll expressions', () => {
+      const expr = new DiceExpression('2d8rr1');
+      const parts = expr.getParts();
+      expect(parts).toHaveLength(1);
+      expect(parts[0].type).toBe('reroll');
+      expect(parts[0].rerollType).toBe('recursive');
+      expect(parts[0].rerollCondition).toBe('=1');
+    });
+
+    it('should parse reroll with conditional operators', () => {
+      const testCases = [
+        { expr: '3d6ro<2', condition: '<2', type: 'once' },
+        { expr: '2d10rr<=3', condition: '<=3', type: 'recursive' },
+        { expr: '4d8r>6', condition: '>6', type: 'exploding' },
+        { expr: '1d20rr>=15', condition: '>=15', type: 'recursive' },
+      ];
+
+      testCases.forEach(testCase => {
+        const expr = new DiceExpression(testCase.expr);
+        const parts = expr.getParts();
+        expect(parts[0].rerollCondition).toBe(testCase.condition);
+        expect(parts[0].rerollType).toBe(testCase.type);
+      });
+    });
+
+    it('should evaluate exploding dice (standard reroll)', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(1.0) // First die: 6 (explodes)
+        .mockReturnValueOnce(0.5) // Reroll: 3 (stops)
+        .mockReturnValueOnce(0.3); // Second die: 2 (no reroll)
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('2d6r6');
+        const result = expr.evaluate();
+        // First die: 6 + 3 = 9, Second die: 2
+        // Total: 9 + 2 = 11
+        expect(result).toBe(11);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should evaluate reroll once mechanics', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(0.0) // First die: 1 (reroll once)
+        .mockReturnValueOnce(0.8) // Reroll: 5 (replace the 1)
+        .mockReturnValueOnce(0.0) // Second die: 1 (reroll once)
+        .mockReturnValueOnce(0.0); // Reroll: 1 (but don't reroll again)
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('2d6ro1');
+        const result = expr.evaluate();
+        // First die: 1 -> 5 (replaced), Second die: 1 -> 1 (only one reroll)
+        // Total: 5 + 1 = 6
+        expect(result).toBe(6);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should evaluate recursive rerolls', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(0.0) // First die: 1 (reroll)
+        .mockReturnValueOnce(0.0) // Reroll: 1 (reroll again)
+        .mockReturnValueOnce(0.8); // Final: 5 (stop)
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('1d6rr1');
+        const result = expr.evaluate();
+        // Die keeps rerolling 1s until it gets 5
+        expect(result).toBe(5);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should handle reroll with conditional operators', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(0.1) // d6 = 1 (< 2, reroll)
+        .mockReturnValueOnce(0.0) // Reroll: 1 (< 2, reroll again)
+        .mockReturnValueOnce(0.5); // Final: 4 (>= 2, stop)
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('1d6rr<2');
+        const result = expr.evaluate();
+        // Keep rerolling until result >= 2
+        expect(result).toBe(4);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should handle reroll dice in complex expressions', () => {
+      // Just verify that reroll dice work in complex expressions without specific values
+      const expr = new DiceExpression('1d6r6+1d4');
+      const result = expr.evaluate();
+      // Result should be reasonable (at least 2, could be much higher with explosions)
+      expect(result).toBeGreaterThanOrEqual(2);
+      expect(result).toBeLessThan(100); // Reasonable upper bound
+    });
+
+    it('should handle reroll dice with parentheses', () => {
+      const mockRandom = jest.fn()
+        .mockReturnValueOnce(1.0) // d6 = 6 (explodes)
+        .mockReturnValueOnce(0.5) // Reroll: 3
+        .mockReturnValueOnce(0.0); // d4 = 1 (reroll once)
+        // Note: this would need another mock for the d4 reroll
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      try {
+        const expr = new DiceExpression('(1d6r6+1d4)*2');
+        // We'll just check it parses and evaluates without error
+        const result = expr.evaluate();
+        expect(typeof result).toBe('number');
+        expect(result).toBeGreaterThan(0);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
+
+    it('should calculate appropriate min/max values for reroll dice', () => {
+      const exprExploding = new DiceExpression('2d6r6');
+      expect(exprExploding.getMinValue()).toBe(2); // Still minimum 1 per die
+      expect(exprExploding.getMaxValue()).toBe(36); // Higher due to potential explosions
+
+      const exprOnce = new DiceExpression('2d6ro1');
+      expect(exprOnce.getMinValue()).toBe(2); // Same as regular dice
+      expect(exprOnce.getMaxValue()).toBe(12); // Same as regular dice (replacement)
+    });
+
+    it('should handle reroll toString correctly', () => {
+      const testCases = [
+        { expr: '3d6r6', expected: '3d6r=6' },
+        { expr: '4d6ro1', expected: '4d6ro=1' },
+        { expr: '2d8rr1', expected: '2d8rr=1' },
+        { expr: '3d6ro<2', expected: '3d6ro<2' },
+        { expr: '2d10rr>=8', expected: '2d10rr>=8' },
+      ];
+
+      testCases.forEach(testCase => {
+        const expr = new DiceExpression(testCase.expr);
+        expect(expr.toString()).toBe(testCase.expected);
+      });
+    });
+
+    it('should throw error for invalid reroll mechanics', () => {
+      // rx1 fails at tokenization because 'x' isn't valid
+      expect(() => new DiceExpression('3d6rx1')).toThrow('Invalid dice expression');
+      // r without number also fails at tokenization
+      expect(() => new DiceExpression('3d6r')).toThrow('Invalid dice expression');
+      // Invalid condition operator also fails at tokenization because ! isn't valid
+      expect(() => new DiceExpression('3d6ro!=2')).toThrow('Invalid dice expression');
+    });
+
+    it('should prevent infinite reroll loops', () => {
+      // This test ensures we don't get stuck in infinite loops
+      const mockRandom = jest.fn().mockReturnValue(0.0); // Always roll 1
+
+      const originalRandom = Math.random;
+      Math.random = mockRandom;
+
+      const originalWarn = console.warn;
+      console.warn = jest.fn(); // Mock console.warn
+
+      try {
+        const expr = new DiceExpression('1d6rr1');
+        const result = expr.evaluate();
+        // Should eventually stop and return 1 after hitting the reroll limit
+        expect(result).toBe(1);
+        expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Maximum rerolls'));
+      } finally {
+        Math.random = originalRandom;
+        console.warn = originalWarn;
+      }
+    });
+  });
 });
