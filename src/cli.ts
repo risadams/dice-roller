@@ -263,8 +263,12 @@ function rollSuccessPool(countStr: string, sidesStr: string, thresholdStr: strin
       
       console.log(`📋 Breakdown: ${Object.entries(breakdown)
         .map(([type, count]) => {
-          const plural = count === 1 ? '' : 's';
-          return `${count} ${type}${type === 'success' && count !== 1 ? 'es' : plural}`;
+          if (type === 'success' && count !== 1) {
+            return `${count} ${type}es`;
+          } else {
+            const plural = count === 1 ? '' : 's';
+            return `${count} ${type}${plural}`;
+          }
         })
         .join(', ')}`);
     } else {

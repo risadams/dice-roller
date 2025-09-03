@@ -473,8 +473,8 @@ export class Roller {
   public rollTargetNumbers(
     dice: Array<{ sides: number; target: number }>,
     options: {
-      criticalOn?: number; // Value that counts as critical hit
-      fumbleOn?: number; // Value that counts as fumble
+      criticalOn?: number; // Exact value that counts as critical hit (e.g., 20 for d20)
+      fumbleOn?: number; // Exact value that counts as fumble (e.g., 1 for natural 1)
     } = {}
   ): {
     hits: number;
@@ -515,8 +515,8 @@ export class Roller {
 
       const roll = this.rollDie(die.sides);
       const hit = roll >= die.target;
-      const critical = criticalOn !== undefined && roll >= criticalOn;
-      const fumble = fumbleOn !== undefined && roll <= fumbleOn;
+      const critical = criticalOn !== undefined && roll === criticalOn;
+      const fumble = fumbleOn !== undefined && roll === fumbleOn;
       const margin = roll - die.target;
 
       if (hit) hits++;
