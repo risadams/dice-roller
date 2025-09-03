@@ -16,6 +16,7 @@ function showHelp() {
 Usage:
   npx @risadams/dice-roller <expression>     Roll a dice expression
   npx @risadams/dice-roller roll <dice>      Roll specific dice (e.g., d20, 3d6)
+  npx @risadams/dice-roller success <count> <sides> <threshold>  Roll success pool
   npx @risadams/dice-roller scrum            Roll a Scrum planning die
   npx @risadams/dice-roller fibonacci        Roll a Fibonacci die
   npx @risadams/dice-roller coin             Flip a coin (Heads/Tails)
@@ -28,6 +29,9 @@ Usage:
 
 Flags:
   --verbose, -v                         Show detailed output including intermediate rolls
+  --botch <value>                       Value that counts as botch for success pools
+  --double <value>                      Value that counts as double success
+  --count-botches                       Subtract botches from successes
 
 Examples:
   npx @risadams/dice-roller "3d6+5"          Roll 3d6+5 (shows result only)
@@ -35,6 +39,9 @@ Examples:
   npx @risadams/dice-roller "2d20+1d4-2"     Roll complex expression
   npx @risadams/dice-roller roll d20         Roll a d20
   npx @risadams/dice-roller roll 4d6 -v      Roll 4d6 with verbose output
+  npx @risadams/dice-roller success 8 10 6   Roll 8d10, count successes >= 6
+  npx @risadams/dice-roller success 6 6 5 --verbose  Shadowrun-style pool
+  npx @risadams/dice-roller success 5 10 7 --botch 1 --double 10 --count-botches  World of Darkness
   npx @risadams/dice-roller scrum            Roll Scrum planning die (1,2,3,5,8,13,20,?)
   npx @risadams/dice-roller fibonacci        Roll Fibonacci die (0,1,1,2,3,5,8,13)
   npx @risadams/dice-roller coin             Flip a coin (Heads/Tails)
@@ -47,6 +54,12 @@ Dice Notation:
   3d6                                   Roll 3 six-sided dice
   2d8+5                                 Roll 2d8 and add 5
   1d20+3-1d4                           Complex expressions with multiple dice
+
+Success Pools:
+  success <count> <sides> <threshold>   Roll dice pool and count successes
+  --botch <value>                      Value that counts as botch (default: none)
+  --double <value>                     Value that counts as double success (default: none)
+  --count-botches                      Whether botches subtract from successes
 
 Advanced:
   advantage d20                         Roll d20 with advantage
@@ -183,6 +196,79 @@ function rollExploding(expression: string) {
       console.log(`📊 Rolls: ${result.rolls.join(', ')} (${result.explosions} explosions)`);
     } else {
       console.log(result.result);
+    }
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
+function rollSuccessPool(countStr: string, sidesStr: string, thresholdStr: string, flags: string[]) {
+  try {
+    const count = parseInt(countStr, 10);
+    const sides = parseInt(sidesStr, 10);
+    const threshold = parseInt(thresholdStr, 10);
+    
+    if (isNaN(count) || isNaN(sides) || isNaN(threshold)) {
+      throw new Error('Count, sides, and threshold must be valid numbers');
+    }
+    
+    // Parse flags
+    let botchOn: number | undefined;
+    let doubleOn: number | undefined;
+    let countBotches = false;
+    
+    for (let i = 0; i < flags.length; i++) {
+      const flag = flags[i];
+      if (flag === '--botch' && i + 1 < flags.length) {
+        botchOn = parseInt(flags[i + 1], 10);
+        if (isNaN(botchOn)) {
+          throw new Error('Botch value must be a valid number');
+        }
+        i++; // Skip the next argument as we consumed it
+      } else if (flag === '--double' && i + 1 < flags.length) {
+        doubleOn = parseInt(flags[i + 1], 10);
+        if (isNaN(doubleOn)) {
+          throw new Error('Double value must be a valid number');
+        }
+        i++;
+      } else if (flag === '--count-botches') {
+        countBotches = true;
+      }
+    }
+    
+    const roller = new Roller();
+    const result = roller.rollSuccessPool(count, sides, threshold, {
+      botchOn,
+      doubleOn,
+      countBotches
+    });
+    
+    if (isVerbose) {
+      console.log(`🎲 Rolling ${count}d${sides}, threshold ${threshold}:`);
+      console.log(`🎯 Successes: ${result.successes}`);
+      if (result.botches > 0) {
+        console.log(`💀 Botches: ${result.botches}`);
+      }
+      if (countBotches) {
+        console.log(`📊 Net Successes: ${result.netSuccesses}`);
+      }
+      console.log(`🎲 Rolls: ${result.rolls.join(', ')}`);
+      
+      // Show breakdown by type
+      const breakdown = result.details.reduce((acc, detail) => {
+        acc[detail.type] = (acc[detail.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      console.log(`📋 Breakdown: ${Object.entries(breakdown)
+        .map(([type, count]) => {
+          const plural = count === 1 ? '' : 's';
+          return `${count} ${type}${type === 'success' && count !== 1 ? 'es' : plural}`;
+        })
+        .join(', ')}`);
+    } else {
+      console.log(countBotches ? result.netSuccesses : result.successes);
     }
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -436,6 +522,15 @@ switch (command) {
   case 'yn':
   case 'decision':
     rollYesNo();
+    break;
+    
+  case 'success':
+  case 'pool':
+    if (args.length < 4) {
+      console.error('❌ Please specify count, sides, and threshold (e.g., success 8 10 6)');
+      process.exit(1);
+    }
+    rollSuccessPool(args[1], args[2], args[3], args.slice(4));
     break;
     
   default:

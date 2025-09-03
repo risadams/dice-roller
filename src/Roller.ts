@@ -23,7 +23,7 @@ export class Roller {
    * Roll multiple dice with the specified number of sides
    */
   public rollDice(count: number, sides: number): number[] {
-    const die = new Die(sides);
+    const die = new Die(sides, this.random);
     return die.rollMultiple(count);
   }
 
@@ -58,7 +58,7 @@ export class Roller {
     
     const detailedParts = parts.map(part => {
       if (part.type === 'dice') {
-        const die = new Die(part.sides!);
+        const die = new Die(part.sides!, this.random);
         const rolls = die.rollMultiple(part.count!);
         const sum = rolls.reduce((s, r) => s + r, 0);
         return {
@@ -402,6 +402,225 @@ export class Roller {
       ties,
       die1Average: die1NumericCount > 0 ? die1Total / die1NumericCount : null,
       die2Average: die2NumericCount > 0 ? die2Total / die2NumericCount : null,
+      results
+    };
+  }
+
+  /**
+   * Roll a dice pool and count successes against a threshold
+   * Common in World of Darkness, Shadowrun, and similar systems
+   */
+  public rollSuccessPool(
+    count: number, 
+    sides: number, 
+    threshold: number, 
+    options: {
+      botchOn?: number; // Value that counts as botch (typically 1), undefined means no botches
+      doubleOn?: number; // Value that counts as double success (typically max)
+      countBotches?: boolean; // Whether botches subtract from successes
+    } = {}
+  ): {
+    successes: number;
+    botches: number;
+    rolls: number[];
+    netSuccesses: number;
+    details: Array<{ roll: number; type: 'success' | 'botch' | 'failure' | 'double' }>;
+  } {
+    if (count <= 0) {
+      throw new Error('Dice count must be positive');
+    }
+    if (threshold <= 0 || threshold > sides) {
+      throw new Error(`Threshold must be between 1 and ${sides}`);
+    }
+
+    const { botchOn, doubleOn, countBotches = false } = options;
+    
+    const rolls = this.rollDice(count, sides);
+    let successes = 0;
+    let botches = 0;
+    const details: Array<{ roll: number; type: 'success' | 'botch' | 'failure' | 'double' }> = [];
+
+    for (const roll of rolls) {
+      if (doubleOn !== undefined && roll === doubleOn && roll >= threshold) {
+        successes += 2;
+        details.push({ roll, type: 'double' });
+      } else if (roll >= threshold) {
+        successes += 1;
+        details.push({ roll, type: 'success' });
+      } else if (botchOn !== undefined && roll === botchOn) {
+        botches += 1;
+        details.push({ roll, type: 'botch' });
+      } else {
+        details.push({ roll, type: 'failure' });
+      }
+    }
+
+    const netSuccesses = countBotches ? Math.max(0, successes - botches) : successes;
+
+    return {
+      successes,
+      botches,
+      rolls,
+      netSuccesses,
+      details
+    };
+  }
+
+  /**
+   * Roll multiple dice against individual target numbers
+   * Useful for systems where each die has its own difficulty
+   */
+  public rollTargetNumbers(
+    dice: Array<{ sides: number; target: number }>,
+    options: {
+      criticalOn?: number; // Value that counts as critical hit
+      fumbleOn?: number; // Value that counts as fumble
+    } = {}
+  ): {
+    hits: number;
+    misses: number;
+    criticalHits: number;
+    fumbles: number;
+    results: Array<{ 
+      roll: number; 
+      target: number; 
+      hit: boolean; 
+      critical: boolean; 
+      fumble: boolean;
+      margin: number; // How much over/under target
+    }>;
+  } {
+    if (dice.length === 0) {
+      throw new Error('At least one die must be specified');
+    }
+
+    const { criticalOn, fumbleOn } = options;
+    let hits = 0;
+    let misses = 0;
+    let criticalHits = 0;
+    let fumbles = 0;
+    const results: Array<{ 
+      roll: number; 
+      target: number; 
+      hit: boolean; 
+      critical: boolean; 
+      fumble: boolean;
+      margin: number;
+    }> = [];
+
+    for (const die of dice) {
+      if (die.target <= 0 || die.target > die.sides) {
+        throw new Error(`Target number ${die.target} must be between 1 and ${die.sides}`);
+      }
+
+      const roll = this.rollDie(die.sides);
+      const hit = roll >= die.target;
+      const critical = criticalOn !== undefined && roll >= criticalOn;
+      const fumble = fumbleOn !== undefined && roll <= fumbleOn;
+      const margin = roll - die.target;
+
+      if (hit) hits++;
+      else misses++;
+      
+      if (critical) criticalHits++;
+      if (fumble) fumbles++;
+
+      results.push({
+        roll,
+        target: die.target,
+        hit,
+        critical,
+        fumble,
+        margin
+      });
+    }
+
+    return {
+      hits,
+      misses,
+      criticalHits,
+      fumbles,
+      results
+    };
+  }
+
+  /**
+   * Roll dice pool with variable thresholds per die
+   * Advanced version that allows different success thresholds for each die
+   */
+  public rollVariableSuccessPool(
+    pool: Array<{ 
+      sides: number; 
+      threshold: number; 
+      botchOn?: number; // undefined means no botches for this die
+      doubleOn?: number; // undefined means no double successes for this die
+    }>
+  ): {
+    totalSuccesses: number;
+    totalBotches: number;
+    netSuccesses: number;
+    results: Array<{
+      roll: number;
+      sides: number;
+      threshold: number;
+      successes: number;
+      botch: boolean;
+      double: boolean;
+    }>;
+  } {
+    if (pool.length === 0) {
+      throw new Error('Pool cannot be empty');
+    }
+
+    let totalSuccesses = 0;
+    let totalBotches = 0;
+    const results: Array<{
+      roll: number;
+      sides: number;
+      threshold: number;
+      successes: number;
+      botch: boolean;
+      double: boolean;
+    }> = [];
+
+    for (const die of pool) {
+      if (die.threshold <= 0 || die.threshold > die.sides) {
+        throw new Error(`Threshold ${die.threshold} must be between 1 and ${die.sides}`);
+      }
+
+      const { botchOn, doubleOn } = die;
+      
+      const roll = this.rollDie(die.sides);
+      let successes = 0;
+      let botch = false;
+      let double = false;
+
+      if (doubleOn !== undefined && roll === doubleOn && roll >= die.threshold) {
+        successes = 2;
+        double = true;
+      } else if (roll >= die.threshold) {
+        successes = 1;
+      } else if (botchOn !== undefined && roll === botchOn) {
+        botch = true;
+        totalBotches++;
+      }
+
+      totalSuccesses += successes;
+
+      results.push({
+        roll,
+        sides: die.sides,
+        threshold: die.threshold,
+        successes,
+        botch,
+        double
+      });
+    }
+
+    return {
+      totalSuccesses,
+      totalBotches,
+      netSuccesses: Math.max(0, totalSuccesses - totalBotches),
       results
     };
   }
