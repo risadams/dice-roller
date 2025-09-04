@@ -206,6 +206,303 @@ export class Roller {
   }
 
   /**
+   * Roll penetrating dice (exploding dice but subsequent rolls are reduced by 1)
+   * Used in systems like Savage Worlds for Aces
+   */
+  public rollPenetrating(count: number, sides: number, maxExplosions: number = 10): {
+    result: number;
+    rolls: number[];
+    penetrations: number;
+    originalRolls: number[];
+  } {
+    const allRolls: number[] = [];
+    const originalRolls: number[] = [];
+    let penetrations = 0;
+
+    for (let i = 0; i < count; i++) {
+      let roll = this.rollDie(sides);
+      allRolls.push(roll);
+      originalRolls.push(roll);
+
+      let currentPenetrations = 0;
+      while (roll === sides && currentPenetrations < maxExplosions) {
+        const originalRoll = this.rollDie(sides);
+        const adjustedRoll = originalRoll - 1; // Penetrating: subtract 1 from subsequent rolls
+        originalRolls.push(originalRoll);
+        
+        if (adjustedRoll > 0) { // Only add if positive
+          allRolls.push(adjustedRoll);
+          penetrations++;
+          currentPenetrations++;
+        } else {
+          // If adjusted roll is 0 or negative, stop penetrating
+          break;
+        }
+        
+        // Continue exploding based on the ORIGINAL roll, not the adjusted one
+        roll = originalRoll;
+      }
+    }
+
+    return {
+      result: allRolls.reduce((sum, roll) => sum + roll, 0),
+      rolls: allRolls,
+      penetrations,
+      originalRolls
+    };
+  }
+
+  /**
+   * Roll compounding dice (explosions are added to the original die's total)
+   * Each die becomes a single large number instead of multiple separate dice
+   */
+  public rollCompounding(count: number, sides: number, maxExplosions: number = 10): {
+    result: number;
+    compoundedRolls: number[];
+    totalExplosions: number;
+    allRolls: number[][];
+  } {
+    const compoundedRolls: number[] = [];
+    const allRolls: number[][] = [];
+    let totalExplosions = 0;
+
+    for (let i = 0; i < count; i++) {
+      const dieRolls: number[] = [];
+      let dieTotal = 0;
+      let roll = this.rollDie(sides);
+      dieRolls.push(roll);
+      dieTotal += roll;
+
+      let currentExplosions = 0;
+      while (roll === sides && currentExplosions < maxExplosions) {
+        roll = this.rollDie(sides);
+        dieRolls.push(roll);
+        dieTotal += roll;
+        totalExplosions++;
+        currentExplosions++;
+      }
+
+      compoundedRolls.push(dieTotal);
+      allRolls.push(dieRolls);
+    }
+
+    return {
+      result: compoundedRolls.reduce((sum, roll) => sum + roll, 0),
+      compoundedRolls,
+      totalExplosions,
+      allRolls
+    };
+  }
+
+  /**
+   * Drop highest N dice from M rolls
+   */
+  public rollDropHighest(count: number, sides: number, drop: number): {
+    result: number;
+    kept: number[];
+    dropped: number[];
+    allRolls: number[];
+  } {
+    if (drop >= count) {
+      throw new Error('Cannot drop more dice than or equal to the number rolled');
+    }
+
+    const rolls = this.rollDice(count, sides);
+    const sorted = [...rolls].sort((a, b) => b - a);
+    const dropped = sorted.slice(0, drop);
+    const kept = sorted.slice(drop);
+
+    return {
+      result: kept.reduce((sum, roll) => sum + roll, 0),
+      kept,
+      dropped,
+      allRolls: rolls
+    };
+  }
+
+  /**
+   * Drop lowest N dice from M rolls
+   */
+  public rollDropLowest(count: number, sides: number, drop: number): {
+    result: number;
+    kept: number[];
+    dropped: number[];
+    allRolls: number[];
+  } {
+    if (drop >= count) {
+      throw new Error('Cannot drop more dice than or equal to the number rolled');
+    }
+
+    const rolls = this.rollDice(count, sides);
+    const sorted = [...rolls].sort((a, b) => a - b);
+    const dropped = sorted.slice(0, drop);
+    const kept = sorted.slice(drop);
+
+    return {
+      result: kept.reduce((sum, roll) => sum + roll, 0),
+      kept,
+      dropped,
+      allRolls: rolls
+    };
+  }
+
+  /**
+   * Keep middle N dice from M rolls (drop highest and lowest)
+   */
+  public rollKeepMiddle(count: number, sides: number, keep: number): {
+    result: number;
+    kept: number[];
+    dropped: number[];
+    allRolls: number[];
+  } {
+    if (keep > count) {
+      throw new Error('Cannot keep more dice than rolled');
+    }
+    if (keep === count) {
+      const rolls = this.rollDice(count, sides);
+      return {
+        result: rolls.reduce((sum, roll) => sum + roll, 0),
+        kept: rolls,
+        dropped: [],
+        allRolls: rolls
+      };
+    }
+
+    const rolls = this.rollDice(count, sides);
+    const sorted = [...rolls].sort((a, b) => a - b);
+    
+    const totalToDrop = count - keep;
+    const dropLow = Math.floor(totalToDrop / 2);
+    const dropHigh = totalToDrop - dropLow;
+    
+    const kept = sorted.slice(dropLow, sorted.length - dropHigh);
+    const dropped = [...sorted.slice(0, dropLow), ...sorted.slice(sorted.length - dropHigh)];
+
+    return {
+      result: kept.reduce((sum, roll) => sum + roll, 0),
+      kept,
+      dropped,
+      allRolls: rolls
+    };
+  }
+
+  /**
+   * Keep dice conditionally based on a threshold
+   */
+  public rollKeepConditional(
+    count: number, 
+    sides: number, 
+    condition: 'above' | 'below' | 'equal', 
+    threshold: number
+  ): {
+    result: number;
+    kept: number[];
+    dropped: number[];
+    allRolls: number[];
+  } {
+    const rolls = this.rollDice(count, sides);
+    const kept: number[] = [];
+    const dropped: number[] = [];
+
+    for (const roll of rolls) {
+      let keepDie = false;
+      switch (condition) {
+        case 'above':
+          keepDie = roll > threshold;
+          break;
+        case 'below':
+          keepDie = roll < threshold;
+          break;
+        case 'equal':
+          keepDie = roll === threshold;
+          break;
+      }
+
+      if (keepDie) {
+        kept.push(roll);
+      } else {
+        dropped.push(roll);
+      }
+    }
+
+    return {
+      result: kept.reduce((sum, roll) => sum + roll, 0),
+      kept,
+      dropped,
+      allRolls: rolls
+    };
+  }
+
+  /**
+   * Savage Worlds style step dice system
+   * Dice "step up" or "step down" in size: d4 -> d6 -> d8 -> d10 -> d12 -> d12+1 -> d12+2, etc.
+   */
+  public rollStepDice(baseDie: number, steps: number): {
+    result: number;
+    finalDie: number;
+    modifier: number;
+    rolled: number;
+    aced: boolean;
+    aceRolls?: number[];
+  } {
+    // Standard Savage Worlds die progression
+    const dieProgression = [4, 6, 8, 10, 12];
+    
+    let currentDieIndex = dieProgression.indexOf(baseDie);
+    if (currentDieIndex === -1) {
+      throw new Error(`Invalid base die: d${baseDie}. Must be one of: d4, d6, d8, d10, d12`);
+    }
+
+    // Apply steps
+    currentDieIndex += steps;
+    
+    let finalDie: number;
+    let modifier = 0;
+
+    if (currentDieIndex < 0) {
+      // Stepped below d4, treat as d4 with penalty
+      finalDie = 4;
+      modifier = currentDieIndex; // Negative modifier
+    } else if (currentDieIndex >= dieProgression.length) {
+      // Stepped above d12, becomes d12 + modifier
+      finalDie = 12;
+      modifier = currentDieIndex - (dieProgression.length - 1);
+    } else {
+      finalDie = dieProgression[currentDieIndex];
+    }
+
+    // Roll the die
+    let roll = this.rollDie(finalDie);
+    let aced = false;
+    const aceRolls: number[] = [];
+
+    // Check for "Aces" (exploding dice in Savage Worlds)
+    if (roll === finalDie) {
+      aced = true;
+      aceRolls.push(roll);
+      
+      // Keep rolling until we don't get max
+      let aceRoll = roll;
+      while (aceRoll === finalDie) {
+        aceRoll = this.rollDie(finalDie);
+        aceRolls.push(aceRoll);
+        roll += aceRoll;
+      }
+    }
+
+    const result = roll + modifier;
+
+    return {
+      result: Math.max(1, result), // Minimum result is 1
+      finalDie,
+      modifier,
+      rolled: roll,
+      aced,
+      aceRolls: aced ? aceRolls : undefined
+    };
+  }
+
+  /**
    * Generate statistics for a dice expression
    */
   public getStatistics(expression: string, samples: number = 10000): {
