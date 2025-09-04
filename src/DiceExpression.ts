@@ -81,7 +81,9 @@ export class DiceExpression {
   private tokenize(expression: string): string[] {
     // Enhanced regex to include parentheses, conditional operators, and reroll mechanics
     // Updated to handle complex reroll patterns like r1, ro<2, rr>=3
-    const regex = /(\d*d\d+(?:r[ro]*[<>=]*\d+|[<>=]+\d+)?|[+\-*/()]|[<>=]+|\d+)/g;
+    // Fixed ReDoS vulnerability by making reroll patterns unambiguous while preserving conditional dice support
+    // Allows invalid patterns like <> to be caught by validation
+    const regex = /(\d*d\d+(?:r(?:r|o)?(?:<=|>=|[<>=])?\d+|[<>=]+\d+)?|[+\-*/()]|(?:<=|>=|==|[<>=])|\d+)/g;
     const tokens = expression.match(regex);
     
     if (!tokens || tokens.join('') !== expression) {
@@ -214,9 +216,10 @@ export class DiceExpression {
     const remaining = token.substring(diceMatch[0].length);
     if (remaining.length > 0) {
       // Check for reroll mechanics first (r, ro, rr)
-      const rerollMatch = remaining.match(/^(r[ro]*[<>=]*\d+)/);
+      // Fixed ReDoS vulnerability by making reroll pattern unambiguous
+      const rerollMatch = remaining.match(/^r(?:r|o)?(?:<=|>=|[<>=])?\d+/);
       if (rerollMatch) {
-        return this.parseRerollMechanics(count, sides, rerollMatch[1]);
+        return this.parseRerollMechanics(count, sides, rerollMatch[0]);
       }
       
       // Check for conditional operators (>, >=, etc.)
@@ -245,29 +248,30 @@ export class DiceExpression {
    */
   private parseRerollMechanics(count: number, sides: number, mechanics: string): DiceExpressionPart {
     // Parse reroll patterns: r, ro, rr followed by condition
-    const rerollMatch = mechanics.match(/^(r|ro|rr)([<>=]*)(\d+)$/);
+    // Fixed ReDoS vulnerability by making pattern unambiguous
+    const rerollMatch = mechanics.match(/^r(r|o)?(<=|>=|[<>=])?(\d+)$/);
     if (!rerollMatch) {
       throw new Error(`Invalid reroll mechanics: ${mechanics}`);
     }
 
-    const rerollTypeStr = rerollMatch[1];
+    const rerollModifier = rerollMatch[1] || ''; // '', 'r', or 'o'
     const conditionOperator = rerollMatch[2] || '='; // Default to equality if no operator
     const threshold = parseInt(rerollMatch[3], 10);
 
     // Determine reroll type
     let rerollType: 'once' | 'recursive' | 'exploding';
-    switch (rerollTypeStr) {
+    switch (rerollModifier) {
+      case '':
+        rerollType = 'exploding'; // Standard reroll (r)
+        break;
+      case 'o':
+        rerollType = 'once'; // Reroll once (ro)
+        break;
       case 'r':
-        rerollType = 'exploding'; // Standard reroll (once, but keeps original behavior)
-        break;
-      case 'ro':
-        rerollType = 'once'; // Reroll once
-        break;
-      case 'rr':
-        rerollType = 'recursive'; // Reroll recursively
+        rerollType = 'recursive'; // Reroll recursively (rr)
         break;
       default:
-        throw new Error(`Unknown reroll type: ${rerollTypeStr}`);
+        throw new Error(`Unknown reroll type: r${rerollModifier}`);
     }
 
     // Validate condition operator
