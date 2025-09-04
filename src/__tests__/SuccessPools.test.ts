@@ -82,8 +82,8 @@ describe('Success Pools', () => {
 
     it('should throw error for invalid parameters', () => {
       expect(() => roller.rollSuccessPool(0, 10, 7)).toThrow('Dice count must be positive');
-      expect(() => roller.rollSuccessPool(5, 10, 0)).toThrow('Threshold must be between 1 and 10');
-      expect(() => roller.rollSuccessPool(5, 10, 11)).toThrow('Threshold must be between 1 and 10');
+      expect(() => roller.rollSuccessPool(5, 10, 0)).toThrow('Threshold 0 must be between 1 and 10');
+      expect(() => roller.rollSuccessPool(5, 10, 11)).toThrow('Threshold 11 must be between 1 and 10');
     });
   });
 
