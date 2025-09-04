@@ -2,23 +2,51 @@
 
 A sophisticated TypeScript dice rolling library for tabletop RPGs, games, and any application requiring elegant dice mechanics.
 
-## Features
+## ✨ Features
 
-- **Simple dice rolling** (d4, d6, d8, d10, d12, d20, d100)
-- **Complex dice expressions** (e.g., "3d6+5", "2d8-1d4+3")
-- **Custom dice** with user-defined values for each side (numeric and non-numeric)
-- **Non-numeric dice** support for text, symbols, and mixed content
-- **Fibonacci dice** for Scrum planning and estimation
-- **Weighted dice** for non-uniform probability distributions
-- **Text-based dice** (Yes/No, Magic 8-Ball, etc.)
-- **Advanced rolling mechanics**:
-  - Advantage/Disadvantage
-  - Keep highest/lowest N dice
-  - Exploding dice
-  - Custom random functions
-- **Statistical analysis** of dice expressions and custom dice
-- **Comprehensive test suite** with 100% coverage
-- **TypeScript support** with full type definitions
+- **🎲 Simple dice rolling** (d4, d6, d8, d10, d12, d20, d100)
+- **🧮 Complex dice expressions** (e.g., "3d6+5", "(2d6+3)*2", "2d20kh1")
+- **🎯 Success pool systems** (World of Darkness, Shadowrun, Chronicles of Darkness)
+- **💥 Advanced mechanics** (exploding, penetrating, compounding, step dice)
+- **🎮 Gaming system support** (D&D, Savage Worlds, World of Darkness, and more)
+- **📝 Powerful expression parser** with conditionals, rerolls, and complex math
+- **🛠️ Custom dice** with user-defined values (numeric and non-numeric)
+- **📊 Statistical analysis** and probability tools
+- **🖥️ Command-line interface** with comprehensive CLI commands
+- **🏗️ Modular architecture** with clean, maintainable code
+- **🧪 100% test coverage** with comprehensive test suite
+- **📘 TypeScript support** with full type definitions
+
+## 📚 Documentation
+
+### 🚀 Quick Start
+
+- **[Getting Started](docs/guides/getting-started.md)** - Installation and basic usage
+- **[Basic Usage](docs/guides/basic-usage.md)** - Core dice rolling concepts
+
+### 📖 User Guides
+
+- **[Advanced Mechanics](docs/guides/advanced-mechanics.md)** - Exploding, penetrating, compounding dice
+- **[Success Pools](docs/guides/success-pools.md)** - Modern RPG dice pool systems  
+- **[Expressions](docs/guides/expressions.md)** - Complex dice expression syntax
+- **[CLI Usage](docs/guides/cli-usage.md)** - Command-line interface guide
+
+### 🔧 API Reference
+
+- **[Roller Class](docs/api/roller.md)** - Main dice rolling engine
+- **[Die Class](docs/api/die.md)** - Individual die representation
+- **[Advanced Mechanics](docs/api/advanced-mechanics.md)** - Specialized dice mechanics
+
+### 🏗️ Architecture & Development
+
+- **[Architecture Overview](docs/architecture/overview.md)** - System design and structure
+- **[Contributing Guide](docs/development/contributing.md)** - How to contribute
+- **[Development Setup](docs/development/setup.md)** - Local development environment
+
+### 📋 Project Information
+
+- **[ROADMAP.md](ROADMAP.md)** - Project roadmap and future plans
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
 
 ## Try It Now with npx
 
