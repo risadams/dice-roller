@@ -211,7 +211,6 @@ export class Roller {
   } {
     const rolls: number[] = [];
     const originalRolls: number[] = [];
-    let penetrations = 0;
 
     let roll = this.rollDie(sides);
     rolls.push(roll);
@@ -225,7 +224,6 @@ export class Roller {
       
       if (adjustedRoll > 0) { // Only add if positive
         rolls.push(adjustedRoll);
-        penetrations++;
         currentPenetrations++;
       } else {
         // If adjusted roll is 0 or negative, stop penetrating
@@ -236,7 +234,7 @@ export class Roller {
       roll = originalRoll;
     }
 
-    return { rolls, originalRolls, penetrations };
+    return { rolls, originalRolls, penetrations: currentPenetrations };
   }
 
   /**
