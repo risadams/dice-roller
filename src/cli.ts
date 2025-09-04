@@ -652,7 +652,7 @@ function rollStepDice(dieStr: string, stepsStr: string, flags: string[]) {
       console.log(`🎯 Final die: ${formatDieModifier(result.finalDie, result.modifier)}`);
       console.log(`🎲 Rolled: ${result.rolled}`);
       if (result.aced) {
-        console.log(`🔥 Aced! Rolls: ${result.aceRolls?.join(', ')}`);
+        console.log(`🔥 Aced! Rolls: ${result.aceRolls!.join(', ')}`);
       }
       console.log(`📊 Final result: ${result.result}`);
     } else {
