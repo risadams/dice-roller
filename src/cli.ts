@@ -10,6 +10,25 @@ const version = '1.1.2';
 let isVerbose = false;
 let isExplain = false;
 
+/**
+ * Formats step count display with proper sign
+ */
+function formatStepsDisplay(steps: number): string {
+  return steps >= 0 ? `+${steps}` : `${steps}`;
+}
+
+/**
+ * Formats die modifier display for step dice
+ */
+function formatDieModifier(finalDie: number, modifier: number): string {
+  if (modifier === 0) {
+    return `d${finalDie}`;
+  }
+  
+  const sign = modifier > 0 ? '+' : '';
+  return `d${finalDie}${sign}${modifier}`;
+}
+
 function showHelp() {
   console.log(`
 🎲 Dice Roller - Elegant TypeScript Dice Rolling Library
@@ -629,8 +648,8 @@ function rollStepDice(dieStr: string, stepsStr: string, flags: string[]) {
     const result = roller.rollStepDice(baseDie, steps);
     
     if (isVerbose) {
-      console.log(`🎲 Step dice: d${baseDie} ${steps >= 0 ? '+' : ''}${steps} steps:`);
-      console.log(`🎯 Final die: d${result.finalDie}${result.modifier !== 0 ? (result.modifier > 0 ? '+' : '') + result.modifier : ''}`);
+      console.log(`🎲 Step dice: d${baseDie} ${formatStepsDisplay(steps)} steps:`);
+      console.log(`🎯 Final die: ${formatDieModifier(result.finalDie, result.modifier)}`);
       console.log(`🎲 Rolled: ${result.rolled}`);
       if (result.aced) {
         console.log(`🔥 Aced! Rolls: ${result.aceRolls?.join(', ')}`);

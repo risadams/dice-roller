@@ -131,9 +131,7 @@ export class Roller {
     dropped: number[];
     total: number;
   } {
-    if (keep > count) {
-      throw new Error('Cannot keep more dice than rolled');
-    }
+    this.validateKeepCount(count, keep);
 
     const rolls = this.rollDice(count, sides);
     const sorted = [...rolls].sort((a, b) => b - a);
@@ -157,9 +155,7 @@ export class Roller {
     dropped: number[];
     total: number;
   } {
-    if (keep > count) {
-      throw new Error('Cannot keep more dice than rolled');
-    }
+    this.validateKeepCount(count, keep);
 
     const rolls = this.rollDice(count, sides);
     const sorted = [...rolls].sort((a, b) => a - b);
@@ -206,6 +202,44 @@ export class Roller {
   }
 
   /**
+   * Rolls a single penetrating die with explosion tracking
+   */
+  private rollSinglePenetratingDie(sides: number, maxExplosions: number): {
+    rolls: number[];
+    originalRolls: number[];
+    penetrations: number;
+  } {
+    const rolls: number[] = [];
+    const originalRolls: number[] = [];
+    let penetrations = 0;
+
+    let roll = this.rollDie(sides);
+    rolls.push(roll);
+    originalRolls.push(roll);
+
+    let currentPenetrations = 0;
+    while (roll === sides && currentPenetrations < maxExplosions) {
+      const originalRoll = this.rollDie(sides);
+      const adjustedRoll = originalRoll - 1; // Penetrating: subtract 1 from subsequent rolls
+      originalRolls.push(originalRoll);
+      
+      if (adjustedRoll > 0) { // Only add if positive
+        rolls.push(adjustedRoll);
+        penetrations++;
+        currentPenetrations++;
+      } else {
+        // If adjusted roll is 0 or negative, stop penetrating
+        break;
+      }
+      
+      // Continue exploding based on the ORIGINAL roll, not the adjusted one
+      roll = originalRoll;
+    }
+
+    return { rolls, originalRolls, penetrations };
+  }
+
+  /**
    * Roll penetrating dice (exploding dice but subsequent rolls are reduced by 1)
    * Used in systems like Savage Worlds for Aces
    */
@@ -215,40 +249,24 @@ export class Roller {
     penetrations: number;
     originalRolls: number[];
   } {
+    this.validateDiceCount(count);
+    
     const allRolls: number[] = [];
-    const originalRolls: number[] = [];
-    let penetrations = 0;
+    const allOriginalRolls: number[] = [];
+    let totalPenetrations = 0;
 
     for (let i = 0; i < count; i++) {
-      let roll = this.rollDie(sides);
-      allRolls.push(roll);
-      originalRolls.push(roll);
-
-      let currentPenetrations = 0;
-      while (roll === sides && currentPenetrations < maxExplosions) {
-        const originalRoll = this.rollDie(sides);
-        const adjustedRoll = originalRoll - 1; // Penetrating: subtract 1 from subsequent rolls
-        originalRolls.push(originalRoll);
-        
-        if (adjustedRoll > 0) { // Only add if positive
-          allRolls.push(adjustedRoll);
-          penetrations++;
-          currentPenetrations++;
-        } else {
-          // If adjusted roll is 0 or negative, stop penetrating
-          break;
-        }
-        
-        // Continue exploding based on the ORIGINAL roll, not the adjusted one
-        roll = originalRoll;
-      }
+      const dieResult = this.rollSinglePenetratingDie(sides, maxExplosions);
+      allRolls.push(...dieResult.rolls);
+      allOriginalRolls.push(...dieResult.originalRolls);
+      totalPenetrations += dieResult.penetrations;
     }
 
     return {
       result: allRolls.reduce((sum, roll) => sum + roll, 0),
       rolls: allRolls,
-      penetrations,
-      originalRolls
+      penetrations: totalPenetrations,
+      originalRolls: allOriginalRolls
     };
   }
 
@@ -262,6 +280,8 @@ export class Roller {
     totalExplosions: number;
     allRolls: number[][];
   } {
+    this.validateDiceCount(count);
+    
     const compoundedRolls: number[] = [];
     const allRolls: number[][] = [];
     let totalExplosions = 0;
@@ -303,9 +323,7 @@ export class Roller {
     dropped: number[];
     allRolls: number[];
   } {
-    if (drop >= count) {
-      throw new Error('Cannot drop more dice than or equal to the number rolled');
-    }
+    this.validateDropCount(count, drop);
 
     const rolls = this.rollDice(count, sides);
     const sorted = [...rolls].sort((a, b) => b - a);
@@ -329,9 +347,7 @@ export class Roller {
     dropped: number[];
     allRolls: number[];
   } {
-    if (drop >= count) {
-      throw new Error('Cannot drop more dice than or equal to the number rolled');
-    }
+    this.validateDropCount(count, drop);
 
     const rolls = this.rollDice(count, sides);
     const sorted = [...rolls].sort((a, b) => a - b);
@@ -355,9 +371,8 @@ export class Roller {
     dropped: number[];
     allRolls: number[];
   } {
-    if (keep > count) {
-      throw new Error('Cannot keep more dice than rolled');
-    }
+    this.validateKeepCount(count, keep);
+    
     if (keep === count) {
       const rolls = this.rollDice(count, sides);
       return {
@@ -434,6 +449,120 @@ export class Roller {
   }
 
   /**
+   * Standard Savage Worlds die progression
+   */
+  private static readonly DIE_PROGRESSION = [4, 6, 8, 10, 12];
+
+  /**
+   * Validates that dice count is positive
+   */
+  private validateDiceCount(count: number): void {
+    if (count <= 0) {
+      throw new Error('Dice count must be positive');
+    }
+  }
+
+  /**
+   * Validates that keep count doesn't exceed roll count
+   */
+  private validateKeepCount(count: number, keep: number): void {
+    if (keep > count) {
+      throw new Error('Cannot keep more dice than rolled');
+    }
+  }
+
+  /**
+   * Validates that drop count doesn't exceed or equal roll count
+   */
+  private validateDropCount(count: number, drop: number): void {
+    if (drop >= count) {
+      throw new Error('Cannot drop more dice than or equal to the number rolled');
+    }
+  }
+
+  /**
+   * Validates that threshold is within valid range for the die
+   */
+  private validateThreshold(threshold: number, sides: number): void {
+    if (threshold < 1 || threshold > sides) {
+      throw new Error(`Threshold ${threshold} must be between 1 and ${sides}`);
+    }
+  }
+
+  /**
+   * Validates that target number is within valid range for the die
+   */
+  private validateTarget(target: number, sides: number): void {
+    if (target < 1 || target > sides) {
+      throw new Error(`Target number ${target} must be between 1 and ${sides}`);
+    }
+  }
+
+  /**
+   * Validates a base die for step dice system
+   */
+  private validateStepDie(baseDie: number): number {
+    const dieIndex = Roller.DIE_PROGRESSION.indexOf(baseDie);
+    if (dieIndex === -1) {
+      throw new Error(`Invalid base die: d${baseDie}. Must be one of: d4, d6, d8, d10, d12`);
+    }
+    return dieIndex;
+  }
+
+  /**
+   * Calculates final die and modifier after applying steps
+   */
+  private calculateSteppedDie(baseIndex: number, steps: number): { finalDie: number; modifier: number } {
+    const targetIndex = baseIndex + steps;
+    
+    if (targetIndex < 0) {
+      // Stepped below d4, treat as d4 with penalty
+      return {
+        finalDie: 4,
+        modifier: targetIndex // Negative modifier
+      };
+    } else if (targetIndex >= Roller.DIE_PROGRESSION.length) {
+      // Stepped above d12, becomes d12 + modifier
+      return {
+        finalDie: 12,
+        modifier: targetIndex - (Roller.DIE_PROGRESSION.length - 1)
+      };
+    } else {
+      return {
+        finalDie: Roller.DIE_PROGRESSION[targetIndex],
+        modifier: 0
+      };
+    }
+  }
+
+  /**
+   * Rolls exploding dice (Aces) for Savage Worlds
+   */
+  private rollWithAces(sides: number): { total: number; aced: boolean; aceRolls?: number[] } {
+    let roll = this.rollDie(sides);
+    
+    if (roll !== sides) {
+      return { total: roll, aced: false };
+    }
+
+    // Handle exploding dice
+    const aceRolls = [roll];
+    let totalRoll = roll;
+    
+    while (roll === sides) {
+      roll = this.rollDie(sides);
+      aceRolls.push(roll);
+      totalRoll += roll;
+    }
+
+    return {
+      total: totalRoll,
+      aced: true,
+      aceRolls
+    };
+  }
+
+  /**
    * Savage Worlds style step dice system
    * Dice "step up" or "step down" in size: d4 -> d6 -> d8 -> d10 -> d12 -> d12+1 -> d12+2, etc.
    */
@@ -445,60 +574,19 @@ export class Roller {
     aced: boolean;
     aceRolls?: number[];
   } {
-    // Standard Savage Worlds die progression
-    const dieProgression = [4, 6, 8, 10, 12];
+    const baseIndex = this.validateStepDie(baseDie);
+    const { finalDie, modifier } = this.calculateSteppedDie(baseIndex, steps);
     
-    let currentDieIndex = dieProgression.indexOf(baseDie);
-    if (currentDieIndex === -1) {
-      throw new Error(`Invalid base die: d${baseDie}. Must be one of: d4, d6, d8, d10, d12`);
-    }
-
-    // Apply steps
-    currentDieIndex += steps;
-    
-    let finalDie: number;
-    let modifier = 0;
-
-    if (currentDieIndex < 0) {
-      // Stepped below d4, treat as d4 with penalty
-      finalDie = 4;
-      modifier = currentDieIndex; // Negative modifier
-    } else if (currentDieIndex >= dieProgression.length) {
-      // Stepped above d12, becomes d12 + modifier
-      finalDie = 12;
-      modifier = currentDieIndex - (dieProgression.length - 1);
-    } else {
-      finalDie = dieProgression[currentDieIndex];
-    }
-
-    // Roll the die
-    let roll = this.rollDie(finalDie);
-    let aced = false;
-    const aceRolls: number[] = [];
-
-    // Check for "Aces" (exploding dice in Savage Worlds)
-    if (roll === finalDie) {
-      aced = true;
-      aceRolls.push(roll);
-      
-      // Keep rolling until we don't get max
-      let aceRoll = roll;
-      while (aceRoll === finalDie) {
-        aceRoll = this.rollDie(finalDie);
-        aceRolls.push(aceRoll);
-        roll += aceRoll;
-      }
-    }
-
-    const result = roll + modifier;
+    const rollResult = this.rollWithAces(finalDie);
+    const finalResult = rollResult.total + modifier;
 
     return {
-      result: Math.max(1, result), // Minimum result is 1
+      result: Math.max(1, finalResult), // Minimum result is 1
       finalDie,
       modifier,
-      rolled: roll,
-      aced,
-      aceRolls: aced ? aceRolls : undefined
+      rolled: rollResult.total,
+      aced: rollResult.aced,
+      aceRolls: rollResult.aceRolls
     };
   }
 
@@ -723,12 +811,8 @@ export class Roller {
     netSuccesses: number;
     details: Array<{ roll: number; type: 'success' | 'botch' | 'failure' | 'double' }>;
   } {
-    if (count <= 0) {
-      throw new Error('Dice count must be positive');
-    }
-    if (threshold <= 0 || threshold > sides) {
-      throw new Error(`Threshold must be between 1 and ${sides}`);
-    }
+    this.validateDiceCount(count);
+    this.validateThreshold(threshold, sides);
 
     const { botchOn, doubleOn, countBotches = false } = options;
     
@@ -806,9 +890,7 @@ export class Roller {
     }> = [];
 
     for (const die of dice) {
-      if (die.target <= 0 || die.target > die.sides) {
-        throw new Error(`Target number ${die.target} must be between 1 and ${die.sides}`);
-      }
+      this.validateTarget(die.target, die.sides);
 
       const roll = this.rollDie(die.sides);
       const hit = roll >= die.target;
@@ -881,9 +963,7 @@ export class Roller {
     }> = [];
 
     for (const die of pool) {
-      if (die.threshold <= 0 || die.threshold > die.sides) {
-        throw new Error(`Threshold ${die.threshold} must be between 1 and ${die.sides}`);
-      }
+      this.validateThreshold(die.threshold, die.sides);
 
       const { botchOn, doubleOn } = die;
       
