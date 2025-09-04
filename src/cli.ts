@@ -18,6 +18,14 @@ Usage:
   npx @risadams/dice-roller <expression>     Roll a dice expression
   npx @risadams/dice-roller roll <dice>      Roll specific dice (e.g., d20, 3d6)
   npx @risadams/dice-roller success <count> <sides> <threshold>  Roll success pool
+  npx @risadams/dice-roller penetrating <count> <sides>          Roll penetrating dice
+  npx @risadams/dice-roller compounding <count> <sides>          Roll compounding dice
+  npx @risadams/dice-roller step <die> <steps>                   Roll step dice (Savage Worlds)
+  npx @risadams/dice-roller keep-highest <count> <sides> <keep>  Roll and keep highest
+  npx @risadams/dice-roller keep-lowest <count> <sides> <keep>   Roll and keep lowest
+  npx @risadams/dice-roller keep-middle <count> <sides> <keep>   Roll and keep middle
+  npx @risadams/dice-roller drop-highest <count> <sides> <drop>  Roll and drop highest
+  npx @risadams/dice-roller drop-lowest <count> <sides> <drop>   Roll and drop lowest
   npx @risadams/dice-roller scrum            Roll a Scrum planning die
   npx @risadams/dice-roller fibonacci        Roll a Fibonacci die
   npx @risadams/dice-roller coin             Flip a coin (Heads/Tails)
@@ -34,6 +42,7 @@ Flags:
   --botch <value>                       Value that counts as botch for success pools
   --double <value>                      Value that counts as double success
   --count-botches                       Subtract botches from successes
+  --max-explosions <num>                Maximum explosions for penetrating/compounding dice
 
 Examples:
   npx @risadams/dice-roller "3d6+5"          Roll 3d6+5 (shows result only)
@@ -47,6 +56,12 @@ Examples:
   npx @risadams/dice-roller success 8 10 6   Roll 8d10, count successes >= 6
   npx @risadams/dice-roller success 6 6 5 --verbose  Shadowrun-style pool
   npx @risadams/dice-roller success 5 10 7 --botch 1 --double 10 --count-botches  World of Darkness
+  npx @risadams/dice-roller penetrating 3 6 --verbose  Roll 3d6 with penetrating dice
+  npx @risadams/dice-roller compounding 4 8   Roll 4d8 with compounding explosions
+  npx @risadams/dice-roller step 6 2          Step up d6 by 2 steps (becomes d10)
+  npx @risadams/dice-roller step 8 -1         Step down d8 by 1 step (becomes d6)
+  npx @risadams/dice-roller keep-highest 4 6 3  Roll 4d6, keep highest 3
+  npx @risadams/dice-roller drop-lowest 5 8 2   Roll 5d8, drop lowest 2
   npx @risadams/dice-roller scrum            Roll Scrum planning die (1,2,3,5,8,13,20,?)
   npx @risadams/dice-roller fibonacci        Roll Fibonacci die (0,1,1,2,3,5,8,13)
   npx @risadams/dice-roller coin             Flip a coin (Heads/Tails)
@@ -66,7 +81,17 @@ Success Pools:
   --double <value>                     Value that counts as double success (default: none)
   --count-botches                      Whether botches subtract from successes
 
-Advanced:
+Advanced Dice Mechanics:
+  penetrating <count> <sides>           Exploding dice with -1 penalty on subsequent rolls
+  compounding <count> <sides>           Exploding dice that add to the same die total
+  step <die> <steps>                   Savage Worlds style step dice system
+  keep-highest <count> <sides> <keep>   Keep highest N dice from pool
+  keep-lowest <count> <sides> <keep>    Keep lowest N dice from pool  
+  keep-middle <count> <sides> <keep>    Keep middle N dice from pool
+  drop-highest <count> <sides> <drop>   Drop highest N dice from pool
+  drop-lowest <count> <sides> <drop>    Drop lowest N dice from pool
+
+Traditional:
   advantage d20                         Roll d20 with advantage
   disadvantage d20                      Roll d20 with disadvantage
   exploding 3d6                        Roll exploding 3d6
@@ -513,6 +538,253 @@ function rollYesNo() {
   }
 }
 
+function rollPenetratingDice(countStr: string, sidesStr: string, flags: string[]) {
+  try {
+    const count = parseInt(countStr, 10);
+    const sides = parseInt(sidesStr, 10);
+    
+    if (isNaN(count) || isNaN(sides)) {
+      throw new Error('Count and sides must be valid numbers');
+    }
+    
+    // Parse flags
+    let maxExplosions = 10;
+    for (let i = 0; i < flags.length; i++) {
+      if (flags[i] === '--max-explosions' && i + 1 < flags.length) {
+        maxExplosions = parseInt(flags[i + 1], 10);
+        if (isNaN(maxExplosions)) {
+          throw new Error('Max explosions must be a valid number');
+        }
+        i++;
+      }
+    }
+    
+    const roller = new Roller();
+    const result = roller.rollPenetrating(count, sides, maxExplosions);
+    
+    if (isVerbose) {
+      console.log(`🎲 Rolling ${count}d${sides} (penetrating):`);
+      console.log(`🎯 Result: ${result.result}`);
+      console.log(`💥 Penetrations: ${result.penetrations}`);
+      console.log(`🎲 Rolls: ${result.rolls.join(', ')}`);
+      console.log(`📋 Original rolls: ${result.originalRolls.join(', ')}`);
+    } else {
+      console.log(result.result);
+    }
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
+function rollCompoundingDice(countStr: string, sidesStr: string, flags: string[]) {
+  try {
+    const count = parseInt(countStr, 10);
+    const sides = parseInt(sidesStr, 10);
+    
+    if (isNaN(count) || isNaN(sides)) {
+      throw new Error('Count and sides must be valid numbers');
+    }
+    
+    // Parse flags
+    let maxExplosions = 10;
+    for (let i = 0; i < flags.length; i++) {
+      if (flags[i] === '--max-explosions' && i + 1 < flags.length) {
+        maxExplosions = parseInt(flags[i + 1], 10);
+        if (isNaN(maxExplosions)) {
+          throw new Error('Max explosions must be a valid number');
+        }
+        i++;
+      }
+    }
+    
+    const roller = new Roller();
+    const result = roller.rollCompounding(count, sides, maxExplosions);
+    
+    if (isVerbose) {
+      console.log(`🎲 Rolling ${count}d${sides} (compounding):`);
+      console.log(`🎯 Result: ${result.result}`);
+      console.log(`💥 Total explosions: ${result.totalExplosions}`);
+      console.log(`🎲 Compounded dice: ${result.compoundedRolls.join(', ')}`);
+      console.log(`📋 All rolls: ${result.allRolls.map(rolls => `[${rolls.join(', ')}]`).join(', ')}`);
+    } else {
+      console.log(result.result);
+    }
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
+function rollStepDice(dieStr: string, stepsStr: string, flags: string[]) {
+  try {
+    const baseDie = parseInt(dieStr, 10);
+    const steps = parseInt(stepsStr, 10);
+    
+    if (isNaN(baseDie) || isNaN(steps)) {
+      throw new Error('Base die and steps must be valid numbers');
+    }
+    
+    const roller = new Roller();
+    const result = roller.rollStepDice(baseDie, steps);
+    
+    if (isVerbose) {
+      console.log(`🎲 Step dice: d${baseDie} ${steps >= 0 ? '+' : ''}${steps} steps:`);
+      console.log(`🎯 Final die: d${result.finalDie}${result.modifier !== 0 ? (result.modifier > 0 ? '+' : '') + result.modifier : ''}`);
+      console.log(`🎲 Rolled: ${result.rolled}`);
+      if (result.aced) {
+        console.log(`🔥 Aced! Rolls: ${result.aceRolls?.join(', ')}`);
+      }
+      console.log(`📊 Final result: ${result.result}`);
+    } else {
+      console.log(result.result);
+    }
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
+function rollKeepHighest(countStr: string, sidesStr: string, keepStr: string, flags: string[]) {
+  try {
+    const count = parseInt(countStr, 10);
+    const sides = parseInt(sidesStr, 10);
+    const keep = parseInt(keepStr, 10);
+    
+    if (isNaN(count) || isNaN(sides) || isNaN(keep)) {
+      throw new Error('Count, sides, and keep must be valid numbers');
+    }
+    
+    const roller = new Roller();
+    const result = roller.rollKeepHighest(count, sides, keep);
+    
+    if (isVerbose) {
+      console.log(`🎲 Rolling ${count}d${sides}, keeping highest ${keep}:`);
+      console.log(`🎯 Result: ${result.result}`);
+      console.log(`✅ Kept: ${result.kept.join(', ')}`);
+      console.log(`❌ Dropped: ${result.dropped.join(', ')}`);
+      console.log(`📊 Total of all dice: ${result.total}`);
+    } else {
+      console.log(result.result);
+    }
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
+function rollKeepLowest(countStr: string, sidesStr: string, keepStr: string, flags: string[]) {
+  try {
+    const count = parseInt(countStr, 10);
+    const sides = parseInt(sidesStr, 10);
+    const keep = parseInt(keepStr, 10);
+    
+    if (isNaN(count) || isNaN(sides) || isNaN(keep)) {
+      throw new Error('Count, sides, and keep must be valid numbers');
+    }
+    
+    const roller = new Roller();
+    const result = roller.rollKeepLowest(count, sides, keep);
+    
+    if (isVerbose) {
+      console.log(`🎲 Rolling ${count}d${sides}, keeping lowest ${keep}:`);
+      console.log(`🎯 Result: ${result.result}`);
+      console.log(`✅ Kept: ${result.kept.join(', ')}`);
+      console.log(`❌ Dropped: ${result.dropped.join(', ')}`);
+      console.log(`📊 Total of all dice: ${result.total}`);
+    } else {
+      console.log(result.result);
+    }
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
+function rollKeepMiddle(countStr: string, sidesStr: string, keepStr: string, flags: string[]) {
+  try {
+    const count = parseInt(countStr, 10);
+    const sides = parseInt(sidesStr, 10);
+    const keep = parseInt(keepStr, 10);
+    
+    if (isNaN(count) || isNaN(sides) || isNaN(keep)) {
+      throw new Error('Count, sides, and keep must be valid numbers');
+    }
+    
+    const roller = new Roller();
+    const result = roller.rollKeepMiddle(count, sides, keep);
+    
+    if (isVerbose) {
+      console.log(`🎲 Rolling ${count}d${sides}, keeping middle ${keep}:`);
+      console.log(`🎯 Result: ${result.result}`);
+      console.log(`✅ Kept: ${result.kept.join(', ')}`);
+      console.log(`❌ Dropped: ${result.dropped.join(', ')}`);
+      console.log(`🎲 All rolls: ${result.allRolls.join(', ')}`);
+    } else {
+      console.log(result.result);
+    }
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
+function rollDropHighest(countStr: string, sidesStr: string, dropStr: string, flags: string[]) {
+  try {
+    const count = parseInt(countStr, 10);
+    const sides = parseInt(sidesStr, 10);
+    const drop = parseInt(dropStr, 10);
+    
+    if (isNaN(count) || isNaN(sides) || isNaN(drop)) {
+      throw new Error('Count, sides, and drop must be valid numbers');
+    }
+    
+    const roller = new Roller();
+    const result = roller.rollDropHighest(count, sides, drop);
+    
+    if (isVerbose) {
+      console.log(`🎲 Rolling ${count}d${sides}, dropping highest ${drop}:`);
+      console.log(`🎯 Result: ${result.result}`);
+      console.log(`✅ Kept: ${result.kept.join(', ')}`);
+      console.log(`❌ Dropped: ${result.dropped.join(', ')}`);
+      console.log(`🎲 All rolls: ${result.allRolls.join(', ')}`);
+    } else {
+      console.log(result.result);
+    }
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
+function rollDropLowest(countStr: string, sidesStr: string, dropStr: string, flags: string[]) {
+  try {
+    const count = parseInt(countStr, 10);
+    const sides = parseInt(sidesStr, 10);
+    const drop = parseInt(dropStr, 10);
+    
+    if (isNaN(count) || isNaN(sides) || isNaN(drop)) {
+      throw new Error('Count, sides, and drop must be valid numbers');
+    }
+    
+    const roller = new Roller();
+    const result = roller.rollDropLowest(count, sides, drop);
+    
+    if (isVerbose) {
+      console.log(`🎲 Rolling ${count}d${sides}, dropping lowest ${drop}:`);
+      console.log(`🎯 Result: ${result.result}`);
+      console.log(`✅ Kept: ${result.kept.join(', ')}`);
+      console.log(`❌ Dropped: ${result.dropped.join(', ')}`);
+      console.log(`🎲 All rolls: ${result.allRolls.join(', ')}`);
+    } else {
+      console.log(result.result);
+    }
+  } catch (error) {
+    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
 function runDemo() {
   console.log('🎲 Dice Roller Interactive Demo');
   console.log('='.repeat(50));
@@ -659,6 +931,70 @@ switch (command) {
       process.exit(1);
     }
     rollSuccessPool(args[1], args[2], args[3], args.slice(4));
+    break;
+    
+  case 'penetrating':
+    if (args.length < 3) {
+      console.error('❌ Please specify count and sides (e.g., penetrating 3 6)');
+      process.exit(1);
+    }
+    rollPenetratingDice(args[1], args[2], args.slice(3));
+    break;
+    
+  case 'compounding':
+    if (args.length < 3) {
+      console.error('❌ Please specify count and sides (e.g., compounding 4 8)');
+      process.exit(1);
+    }
+    rollCompoundingDice(args[1], args[2], args.slice(3));
+    break;
+    
+  case 'step':
+    if (args.length < 3) {
+      console.error('❌ Please specify base die and steps (e.g., step 6 2)');
+      process.exit(1);
+    }
+    rollStepDice(args[1], args[2], args.slice(3));
+    break;
+    
+  case 'keep-highest':
+    if (args.length < 4) {
+      console.error('❌ Please specify count, sides, and keep (e.g., keep-highest 4 6 3)');
+      process.exit(1);
+    }
+    rollKeepHighest(args[1], args[2], args[3], args.slice(4));
+    break;
+    
+  case 'keep-lowest':
+    if (args.length < 4) {
+      console.error('❌ Please specify count, sides, and keep (e.g., keep-lowest 4 6 3)');
+      process.exit(1);
+    }
+    rollKeepLowest(args[1], args[2], args[3], args.slice(4));
+    break;
+    
+  case 'keep-middle':
+    if (args.length < 4) {
+      console.error('❌ Please specify count, sides, and keep (e.g., keep-middle 5 6 3)');
+      process.exit(1);
+    }
+    rollKeepMiddle(args[1], args[2], args[3], args.slice(4));
+    break;
+    
+  case 'drop-highest':
+    if (args.length < 4) {
+      console.error('❌ Please specify count, sides, and drop (e.g., drop-highest 4 6 1)');
+      process.exit(1);
+    }
+    rollDropHighest(args[1], args[2], args[3], args.slice(4));
+    break;
+    
+  case 'drop-lowest':
+    if (args.length < 4) {
+      console.error('❌ Please specify count, sides, and drop (e.g., drop-lowest 4 6 1)');
+      process.exit(1);
+    }
+    rollDropLowest(args[1], args[2], args[3], args.slice(4));
     break;
     
   default:

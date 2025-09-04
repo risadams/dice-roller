@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Advanced Dice Mechanics** - Complete implementation of gaming dice mechanics:
+  - `rollPenetrating()` - Exploding dice with -1 penalty on subsequent rolls (Savage Worlds style)
+  - `rollCompounding()` - Exploding dice that accumulate into single die totals
+  - `rollStepDice()` - Savage Worlds step dice system (d4→d6→d8→d10→d12→d12+N)
+  - `rollDropHighest()` / `rollDropLowest()` - Drop specific number of highest/lowest dice
+  - `rollKeepMiddle()` - Keep middle N dice from a pool
+  - `rollKeepConditional()` - Keep dice based on threshold conditions (above/below/equal)
+
+- **Enhanced CLI Commands** for all advanced dice mechanics:
+  - `penetrating <count> <sides>` - Roll penetrating dice
+  - `compounding <count> <sides>` - Roll compounding dice  
+  - `step <die> <steps>` - Roll step dice with progression
+  - `keep-highest <count> <sides> <keep>` - Roll and keep highest N dice
+  - `keep-lowest <count> <sides> <keep>` - Roll and keep lowest N dice
+  - `keep-middle <count> <sides> <keep>` - Roll and keep middle N dice
+  - `drop-highest <count> <sides> <drop>` - Roll and drop highest N dice
+  - `drop-lowest <count> <sides> <drop>` - Roll and drop lowest N dice
+  - `--max-explosions <num>` flag for penetrating/compounding dice
+
+- **Comprehensive Test Coverage** - 25 new test cases covering all advanced mechanics
+- **Type Safety** - Full TypeScript support with detailed return types for all new methods
+
+### Enhanced
+
+- CLI help system updated with examples for all new advanced dice mechanics
+- Verbose output includes detailed breakdowns of advanced dice results
+- Error handling for edge cases (invalid step dice, excessive drops, etc.)
+
 ## [1.1.2] - 2025-09-02
 
 ### Added

@@ -5,6 +5,7 @@ This document outlines planned features and enhancements for the Dice Roller lib
 ## High Priority (Next Release)
 
 ### 1. Success Counting & Dice Pools 🎯
+
 **Status**: ✅ COMPLETED  
 **Effort**: Medium  
 **Impact**: High - Essential for modern RPG systems
@@ -20,19 +21,21 @@ This document outlines planned features and enhancements for the Dice Roller lib
 
 **Example Systems**: World of Darkness, Shadowrun, Chronicles of Darkness
 
-**Implementation Notes**: 
+**Implementation Notes**:
+
 - Added three new methods: `rollSuccessPool()`, `rollTargetNumbers()`, `rollVariableSuccessPool()`
 - Full CLI integration with `success` command and flags
 - Comprehensive test suite with 18 test cases
 - Fixed random function propagation in `rollDice()` method
 
 ### 2. Expression Parser Enhancements 📝
+
 **Status**: ✅ COMPLETED  
 **Effort**: High  
 **Impact**: High - Greatly expands expression capabilities
 
 - [x] Add parentheses support for complex expressions ✅
-  - `(2d6+3)*2` ✅ 
+  - `(2d6+3)*2` ✅
   - `3d(1d4+2)` (parsing works, dynamic dice count not yet implemented)
 - [x] Implement conditional operators ✅
   - `3d6>10` (count successes) ✅
@@ -44,7 +47,8 @@ This document outlines planned features and enhancements for the Dice Roller lib
   - `2d8rr1` (reroll 1s repeatedly) ✅
   - Also supports: `r>6`, `ro>=4`, `rr<=3`
 
-**Implementation Notes**: 
+**Implementation Notes**:
+
 - Added recursive descent parser with proper mathematical precedence
 - Enhanced DiceExpressionPart with support for nested expressions, conditionals, and rerolls
 - Full CLI integration with complex expression support
@@ -52,21 +56,33 @@ This document outlines planned features and enhancements for the Dice Roller lib
 - Safety mechanisms to prevent infinite loops in recursive rerolls
 
 ### 3. Advanced Dice Mechanics 🎲
-**Status**: Not Started  
+
+**Status**: ✅ COMPLETED  
 **Effort**: Medium  
 **Impact**: High - Common gaming mechanics
 
-- [ ] Penetrating dice (exploding minus 1)
-- [ ] Compounding dice (add explosions to total)
-- [ ] Extended keep/drop mechanics
+- [x] Penetrating dice (exploding minus 1)
+- [x] Compounding dice (add explosions to total)
+- [x] Extended keep/drop mechanics
   - Drop highest/lowest X dice
   - Keep middle X dice
   - Conditional keeps (above/below threshold)
-- [ ] Step dice system (Savage Worlds style)
+- [x] Step dice system (Savage Worlds style)
+
+**Implementation Notes**:
+
+- Added five new methods: `rollPenetrating()`, `rollCompounding()`, `rollDropHighest()`, `rollDropLowest()`, `rollKeepMiddle()`, `rollKeepConditional()`, `rollStepDice()`
+- Full CLI integration with dedicated commands: `penetrating`, `compounding`, `step`, `keep-highest`, `keep-lowest`, `keep-middle`, `drop-highest`, `drop-lowest`
+- Comprehensive test suite with 25 test cases covering all advanced mechanics
+- Penetrating dice properly handle the -1 penalty and stop on zero/negative results
+- Compounding dice accumulate all explosions into single die totals
+- Step dice system supports full Savage Worlds progression (d4→d6→d8→d10→d12→d12+N)
+- Enhanced keep/drop mechanics with conditional filtering and middle selection
 
 ## Medium Priority (Future Releases)
 
 ### 4. Roll History & Session Management 📊
+
 **Status**: Not Started  
 **Effort**: Medium  
 **Impact**: Medium - Great for applications and gaming sessions
@@ -79,6 +95,7 @@ This document outlines planned features and enhancements for the Dice Roller lib
 - [ ] Roll replay functionality
 
 ### 5. Enhanced Statistics & Analysis 📈
+
 **Status**: Not Started  
 **Effort**: Medium  
 **Impact**: Medium - Valuable for game design and analysis
@@ -91,6 +108,7 @@ This document outlines planned features and enhancements for the Dice Roller lib
 - [ ] Statistical significance testing
 
 ### 6. Specialized Gaming Systems 🎮
+
 **Status**: Not Started  
 **Effort**: Medium  
 **Impact**: Medium - Expands target audience
@@ -105,6 +123,7 @@ This document outlines planned features and enhancements for the Dice Roller lib
 ## Lower Priority (Nice to Have)
 
 ### 7. Event System & Observers 🔔
+
 **Status**: Not Started  
 **Effort**: Medium  
 **Impact**: Low-Medium - Enables rich integrations
@@ -118,6 +137,7 @@ This document outlines planned features and enhancements for the Dice Roller lib
 - [ ] Plugin system foundation
 
 ### 8. Performance & Optimization ⚡
+
 **Status**: Not Started  
 **Effort**: High  
 **Impact**: Low-Medium - Important for high-volume usage
@@ -129,6 +149,7 @@ This document outlines planned features and enhancements for the Dice Roller lib
 - [ ] Streaming results for massive simulations
 
 ### 9. Import/Export & Persistence 💾
+
 **Status**: Not Started  
 **Effort**: Low  
 **Impact**: Low - Quality of life improvement
@@ -140,6 +161,7 @@ This document outlines planned features and enhancements for the Dice Roller lib
 - [ ] Multiple save format support
 
 ### 10. Quality of Life Improvements 🛠️
+
 **Status**: Not Started  
 **Effort**: Low-Medium  
 **Impact**: Low-Medium - Developer experience
@@ -155,6 +177,7 @@ This document outlines planned features and enhancements for the Dice Roller lib
 ## Future Considerations
 
 ### 11. Web Integration Features 🌐
+
 **Status**: Not Started  
 **Effort**: High  
 **Impact**: Low - Specific use case
@@ -166,6 +189,7 @@ This document outlines planned features and enhancements for the Dice Roller lib
 - [ ] Webhook support for external systems
 
 ### 12. Advanced Mathematical Features 🧮
+
 **Status**: Not Started  
 **Effort**: High  
 **Impact**: Low - Specialized use cases
@@ -180,6 +204,7 @@ This document outlines planned features and enhancements for the Dice Roller lib
 ## Technical Debt & Maintenance
 
 ### Code Quality
+
 - [ ] Increase test coverage to 100%
 - [ ] Add performance benchmarks
 - [ ] Documentation improvements
@@ -187,6 +212,7 @@ This document outlines planned features and enhancements for the Dice Roller lib
 - [ ] Code splitting for tree-shaking
 
 ### Infrastructure
+
 - [ ] CI/CD pipeline improvements
 - [ ] Automated security scanning
 - [ ] Dependency updates automation
@@ -196,21 +222,25 @@ This document outlines planned features and enhancements for the Dice Roller lib
 ## Version Planning
 
 ### v1.2.0 - Success & Pools
+
 - Success counting systems
 - Basic dice pools
 - Simple reroll mechanics
 
 ### v1.3.0 - Advanced Expressions
+
 - Parentheses support
 - Conditional operators
 - Extended reroll systems
 
 ### v1.4.0 - Gaming Systems
+
 - Specialized dice systems
 - Advanced mechanics
 - Roll history
 
 ### v2.0.0 - Major Overhaul
+
 - Event system
 - Performance optimizations
 - Breaking API changes (if needed)
