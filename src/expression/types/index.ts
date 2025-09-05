@@ -44,7 +44,7 @@ export type {
   DetailedEvaluationResult,
   EvaluationStep,
   EvaluationExplanation,
-  DiceRollResult,
+  ExpressionDiceResult,
   ConditionalDiceResult,
   RerollDiceResult,
   EvaluationContext,

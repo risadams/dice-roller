@@ -48,9 +48,9 @@ export interface EvaluationExplanation {
 }
 
 /**
- * Result of dice roll evaluation
+ * Result of dice roll evaluation within expression context
  */
-export interface DiceRollResult {
+export interface ExpressionDiceResult {
   rolls: number[];
   total: number;
   count: number;
@@ -60,7 +60,7 @@ export interface DiceRollResult {
 /**
  * Result of conditional dice evaluation
  */
-export interface ConditionalDiceResult extends DiceRollResult {
+export interface ConditionalDiceResult extends ExpressionDiceResult {
   successes: number;
   threshold: number;
   condition: string;
@@ -71,7 +71,7 @@ export interface ConditionalDiceResult extends DiceRollResult {
 /**
  * Result of reroll dice evaluation
  */
-export interface RerollDiceResult extends DiceRollResult {
+export interface RerollDiceResult extends ExpressionDiceResult {
   rerollCount: number;
   maxRerollsReached: boolean;
   rerollType: string;
@@ -249,11 +249,11 @@ export namespace EvaluationResultGuards {
     return 'rolls' in result;
   }
 
-  export function isConditionalResult(result: DiceRollResult): result is ConditionalDiceResult {
+  export function isConditionalResult(result: ExpressionDiceResult): result is ConditionalDiceResult {
     return 'successes' in result;
   }
 
-  export function isRerollResult(result: DiceRollResult): result is RerollDiceResult {
+  export function isRerollResult(result: ExpressionDiceResult): result is RerollDiceResult {
     return 'rerollCount' in result;
   }
 }

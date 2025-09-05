@@ -50,7 +50,7 @@ export class CustomDiceCommand extends BaseCommand {
           break;
       }
     } catch (error) {
-      this.handleError(error instanceof Error ? error : new Error('Unknown error'), 'custom');
+      this.handleAnyError(error, 'custom');
     }
   }
 

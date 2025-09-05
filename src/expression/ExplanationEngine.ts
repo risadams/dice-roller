@@ -9,7 +9,7 @@ import {
   EvaluationStep,
   EvaluationExplanation,
   EvaluationContext,
-  DiceRollResult,
+  ExpressionDiceResult,
   ConditionalDiceResult,
   RerollDiceResult
 } from './types';
@@ -154,7 +154,7 @@ export class ExplanationEngine {
    * @param node The dice node being rolled
    * @param result The dice roll result
    */
-  public recordDiceRoll(node: DiceNode, result: DiceRollResult): void {
+  public recordDiceRoll(node: DiceNode, result: ExpressionDiceResult): void {
     const rolls = result.rolls;
     this.addStep({
       step: ++this.stepCounter,

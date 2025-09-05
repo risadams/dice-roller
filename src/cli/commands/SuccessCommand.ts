@@ -30,7 +30,7 @@ export class SuccessCommand extends BaseCommand {
       
       OutputFormatter.formatSuccessPool(count, sides, threshold, result, flags.isVerbose);
     } catch (error) {
-      this.handleError(error instanceof Error ? error : new Error('Unknown error'), 'success');
+      this.handleAnyError(error, 'success');
     }
   }
 
