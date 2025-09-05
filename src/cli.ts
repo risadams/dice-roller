@@ -4,7 +4,9 @@ import { Roller } from './Roller';
 import { DiceExpression } from './DiceExpression';
 import { DicePresets } from './CustomDie';
 
-const version = '1.1.2';
+// Read version from package.json
+const packageJson = require('../package.json');
+const version = packageJson.version;
 
 // Global flags for output modes
 let isVerbose = false;

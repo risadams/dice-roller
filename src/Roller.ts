@@ -1,6 +1,8 @@
 import { Die } from './Die';
 import { DiceExpression } from './DiceExpression';
 import { CustomDie } from './CustomDie';
+import { ValidationHelpers } from './validation/ValidationHelpers';
+import { DIE_PROGRESSION } from './types/DiceConstants';
 
 /**
  * Main dice rolling engine that handles various dice operations
@@ -131,7 +133,7 @@ export class Roller {
     dropped: number[];
     total: number;
   } {
-    this.validateKeepCount(count, keep);
+    ValidationHelpers.validateKeepCount(count, keep);
 
     const rolls = this.rollDice(count, sides);
     const sorted = [...rolls].sort((a, b) => b - a);
@@ -155,7 +157,7 @@ export class Roller {
     dropped: number[];
     total: number;
   } {
-    this.validateKeepCount(count, keep);
+    ValidationHelpers.validateKeepCount(count, keep);
 
     const rolls = this.rollDice(count, sides);
     const sorted = [...rolls].sort((a, b) => a - b);
@@ -247,7 +249,7 @@ export class Roller {
     penetrations: number;
     originalRolls: number[];
   } {
-    this.validateDiceCount(count);
+    ValidationHelpers.validateDiceCount(count);
     
     const allRolls: number[] = [];
     const allOriginalRolls: number[] = [];
@@ -278,7 +280,7 @@ export class Roller {
     totalExplosions: number;
     allRolls: number[][];
   } {
-    this.validateDiceCount(count);
+    ValidationHelpers.validateDiceCount(count);
     
     const compoundedRolls: number[] = [];
     const allRolls: number[][] = [];
@@ -321,7 +323,7 @@ export class Roller {
     dropped: number[];
     allRolls: number[];
   } {
-    this.validateDropCount(count, drop);
+    ValidationHelpers.validateDropCount(count, drop);
 
     const rolls = this.rollDice(count, sides);
     const sorted = [...rolls].sort((a, b) => b - a);
@@ -345,7 +347,7 @@ export class Roller {
     dropped: number[];
     allRolls: number[];
   } {
-    this.validateDropCount(count, drop);
+    ValidationHelpers.validateDropCount(count, drop);
 
     const rolls = this.rollDice(count, sides);
     const sorted = [...rolls].sort((a, b) => a - b);
@@ -369,7 +371,7 @@ export class Roller {
     dropped: number[];
     allRolls: number[];
   } {
-    this.validateKeepCount(count, keep);
+    ValidationHelpers.validateKeepCount(count, keep);
     
     if (keep === count) {
       const rolls = this.rollDice(count, sides);
@@ -447,67 +449,6 @@ export class Roller {
   }
 
   /**
-   * Standard Savage Worlds die progression
-   */
-  private static readonly DIE_PROGRESSION = [4, 6, 8, 10, 12];
-
-  /**
-   * Validates that dice count is positive
-   */
-  private validateDiceCount(count: number): void {
-    if (count <= 0) {
-      throw new Error('Dice count must be positive');
-    }
-  }
-
-  /**
-   * Validates that keep count doesn't exceed roll count
-   */
-  private validateKeepCount(count: number, keep: number): void {
-    if (keep > count) {
-      throw new Error('Cannot keep more dice than rolled');
-    }
-  }
-
-  /**
-   * Validates that drop count doesn't exceed or equal roll count
-   */
-  private validateDropCount(count: number, drop: number): void {
-    if (drop >= count) {
-      throw new Error('Cannot drop more dice than or equal to the number rolled');
-    }
-  }
-
-  /**
-   * Validates that threshold is within valid range for the die
-   */
-  private validateThreshold(threshold: number, sides: number): void {
-    if (threshold < 1 || threshold > sides) {
-      throw new Error(`Threshold ${threshold} must be between 1 and ${sides}`);
-    }
-  }
-
-  /**
-   * Validates that target number is within valid range for the die
-   */
-  private validateTarget(target: number, sides: number): void {
-    if (target < 1 || target > sides) {
-      throw new Error(`Target number ${target} must be between 1 and ${sides}`);
-    }
-  }
-
-  /**
-   * Validates a base die for step dice system
-   */
-  private validateStepDie(baseDie: number): number {
-    const dieIndex = Roller.DIE_PROGRESSION.indexOf(baseDie);
-    if (dieIndex === -1) {
-      throw new Error(`Invalid base die: d${baseDie}. Must be one of: d4, d6, d8, d10, d12`);
-    }
-    return dieIndex;
-  }
-
-  /**
    * Calculates final die and modifier after applying steps
    */
   private calculateSteppedDie(baseIndex: number, steps: number): { finalDie: number; modifier: number } {
@@ -519,15 +460,15 @@ export class Roller {
         finalDie: 4,
         modifier: targetIndex // Negative modifier
       };
-    } else if (targetIndex >= Roller.DIE_PROGRESSION.length) {
+    } else if (targetIndex >= DIE_PROGRESSION.length) {
       // Stepped above d12, becomes d12 + modifier
       return {
         finalDie: 12,
-        modifier: targetIndex - (Roller.DIE_PROGRESSION.length - 1)
+        modifier: targetIndex - (DIE_PROGRESSION.length - 1)
       };
     } else {
       return {
-        finalDie: Roller.DIE_PROGRESSION[targetIndex],
+        finalDie: DIE_PROGRESSION[targetIndex],
         modifier: 0
       };
     }
@@ -572,7 +513,7 @@ export class Roller {
     aced: boolean;
     aceRolls?: number[];
   } {
-    const baseIndex = this.validateStepDie(baseDie);
+    const baseIndex = ValidationHelpers.validateStepDie(baseDie);
     const { finalDie, modifier } = this.calculateSteppedDie(baseIndex, steps);
     
     const rollResult = this.rollWithAces(finalDie);
@@ -809,8 +750,8 @@ export class Roller {
     netSuccesses: number;
     details: Array<{ roll: number; type: 'success' | 'botch' | 'failure' | 'double' }>;
   } {
-    this.validateDiceCount(count);
-    this.validateThreshold(threshold, sides);
+    ValidationHelpers.validateDiceCount(count);
+    ValidationHelpers.validateThreshold(threshold, sides);
 
     const { botchOn, doubleOn, countBotches = false } = options;
     
@@ -888,7 +829,7 @@ export class Roller {
     }> = [];
 
     for (const die of dice) {
-      this.validateTarget(die.target, die.sides);
+      ValidationHelpers.validateTarget(die.target, die.sides);
 
       const roll = this.rollDie(die.sides);
       const hit = roll >= die.target;
@@ -961,7 +902,7 @@ export class Roller {
     }> = [];
 
     for (const die of pool) {
-      this.validateThreshold(die.threshold, die.sides);
+      ValidationHelpers.validateThreshold(die.threshold, die.sides);
 
       const { botchOn, doubleOn } = die;
       
