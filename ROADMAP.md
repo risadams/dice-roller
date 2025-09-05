@@ -6,7 +6,7 @@
 
 ## 📈 Project Status & Vision
 
-### **Current State (v1.1.2+)**
+### **Current State (v2.0.0-beta)**
 
 - ✅ **Core Functionality**: Complete basic dice rolling engine
 - ✅ **Advanced Mechanics**: Exploding, penetrating, compounding, step dice
@@ -14,6 +14,7 @@
 - ✅ **Expression Parser**: Complex expressions with conditionals and rerolls  
 - ✅ **CLI Interface**: Comprehensive command-line tool
 - ✅ **Architecture**: Fully refactored modular design
+- 🚧 **Beta Status**: Major architectural refactor with breaking changes
 
 ### **Vision Statement**
 
@@ -23,21 +24,29 @@
 
 ## 🚀 Release Timeline
 
+### **CURRENT: v2.0.0-beta "Architectural Refactor" 🚧**
+
+**Focus**: Complete architectural overhaul with modular design
+
 ### **COMPLETED: v1.2.0 "Session Management" ✅**
 
-*Focus: Roll History & Session Tracking*
+**Focus**: Roll History & Session Tracking
 
-### **Next Release: v1.3.0 "Advanced Analytics" (Q1 2026)**  
+### **Next Release: v2.0.0 "Production Release" (Q4 2025)**  
 
-*Focus: Statistics, Analysis & Probability Tools*
+**Focus**: Beta stabilization, bug fixes, and production readiness
 
-### **v1.4.0 "Gaming Ecosystems" (Q2 2026)**
+### **v2.1.0 "Advanced Analytics" (Q1 2026)**  
 
-*Focus: Specialized Game Systems & Integration*
+**Focus**: Statistics, Analysis & Probability Tools
 
-### **v2.0.0 "Professional Platform" (Q3 2026)**
+### **v2.2.0 "Gaming Ecosystems" (Q2 2026)**
 
-*Focus: Performance, Events, Breaking Improvements*
+**Focus**: Specialized Game Systems & Integration
+
+### **v3.0.0 "Professional Platform" (Q3 2026)**
+
+**Focus**: Performance, Events, Breaking Improvements
 
 ---
 
