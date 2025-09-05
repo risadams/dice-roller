@@ -218,7 +218,7 @@ export class Evaluator {
         return left * right;
       case '/':
         if (right === 0) {
-          return 0; // Graceful handling of division by zero
+          throw new EvaluationError('Division by zero is not allowed', node);
         }
         return Math.floor(left / right);
       default:

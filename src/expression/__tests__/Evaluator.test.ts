@@ -178,7 +178,7 @@ describe('Expression System - Evaluator', () => {
   describe('Error Handling', () => {
     it('should throw EvaluationError for division by zero', () => {
       const ast = parser.parse('10/0');
-      expect(() => evaluator.evaluate(ast, mockContext)).not.toThrow(); // Should handle gracefully
+      expect(() => evaluator.evaluate(ast, mockContext)).toThrow('Division by zero is not allowed');
     });
 
     it('should handle invalid operators gracefully', () => {

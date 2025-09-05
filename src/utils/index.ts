@@ -10,6 +10,7 @@ import { ConsoleUtils } from './ConsoleUtils';
 import { TestUtils } from './TestUtils';
 import { ValidationHelpers } from '../validation/ValidationHelpers';
 import { SeededRNG } from './RandomUtils';
+import { generateUUID, generateShortUUID, isValidUUID } from './UuidUtils';
 
 // Export the utility classes
 export { NumberUtils } from './NumberUtils';
@@ -18,6 +19,9 @@ export { StringUtils } from './StringUtils';
 export { ConsoleUtils } from './ConsoleUtils';
 export { TestUtils } from './TestUtils';
 export { SeededRNG } from './RandomUtils';
+
+// Export UUID utilities
+export { generateUUID, generateShortUUID, isValidUUID } from './UuidUtils';
 
 // Re-export commonly used utilities for convenience
 export const {

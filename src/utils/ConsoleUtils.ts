@@ -186,6 +186,11 @@ export class ConsoleUtils {
    * Creates a progress indicator
    */
   static progress(current: number, total: number, label?: string): void {
+    // Only show progress bar if stdout is a TTY (interactive terminal)
+    if (!process.stdout.isTTY) {
+      return;
+    }
+
     const percentage = Math.min(current / total, 1);
     const barLength = 30;
     const filledLength = Math.floor(percentage * barLength);
