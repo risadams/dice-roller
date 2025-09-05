@@ -421,6 +421,20 @@ export class Parser {
   }
 
   /**
+   * Type guard for ConditionalDiceToken
+   */
+  private isConditionalDiceToken(token: ConditionalToken): token is ConditionalToken & { count: number; sides: number } {
+    return typeof (token as any).count === 'number' && typeof (token as any).sides === 'number';
+  }
+
+  /**
+   * Type guard for RerollDiceToken
+   */
+  private isRerollDiceToken(token: RerollToken): token is RerollToken & { count: number; sides: number } {
+    return typeof (token as any).count === 'number' && typeof (token as any).sides === 'number';
+  }
+
+  /**
    * Parse primary expressions (dice, constants, parentheses)
    */
   private parsePrimary(tokens: TokenStream): ExpressionNode {
@@ -461,11 +475,11 @@ export class Parser {
       case 'conditional':
         const conditionalToken = token as ConditionalToken;
         // Handle conditional tokens that include dice data
-        if ('count' in conditionalToken && 'sides' in conditionalToken) {
+        if (this.isConditionalDiceToken(conditionalToken)) {
           return {
             type: 'conditional_dice',
-            count: (conditionalToken as any).count,
-            sides: (conditionalToken as any).sides,
+            count: conditionalToken.count,
+            sides: conditionalToken.sides,
             operator: conditionalToken.operator,
             threshold: conditionalToken.threshold
           } as ConditionalDiceNode;
@@ -475,11 +489,11 @@ export class Parser {
       case 'reroll':
         const rerollToken = token as RerollToken;
         // Handle reroll tokens that include dice data
-        if ('count' in rerollToken && 'sides' in rerollToken) {
+        if (this.isRerollDiceToken(rerollToken)) {
           return {
             type: 'reroll_dice',
-            count: (rerollToken as any).count,
-            sides: (rerollToken as any).sides,
+            count: rerollToken.count,
+            sides: rerollToken.sides,
             rerollType: rerollToken.rerollType,
             condition: rerollToken.condition,
             threshold: rerollToken.threshold

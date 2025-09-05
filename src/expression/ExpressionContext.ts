@@ -70,7 +70,7 @@ export class ExpressionContext implements EvaluationContext {
     const childContext = new ExpressionContext(childConfig);
     
     // Inherit step counter if not specifically overridden
-    if (!overrides.hasOwnProperty('stepCounter')) {
+    if (!Object.prototype.hasOwnProperty.call(overrides, 'stepCounter')) {
       childContext.stepCounter = this.stepCounter;
     }
     
