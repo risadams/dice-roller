@@ -6,7 +6,7 @@
  * Standard step dice progression used in various dice systems
  * Common progression: d4 -> d6 -> d8 -> d10 -> d12
  */
-export const DIE_PROGRESSION = [4, 6, 8, 10, 12];
+export const DIE_PROGRESSION = [4, 6, 8, 10, 12] as const;
 
 /**
  * Type representing valid step dice values

@@ -15,8 +15,8 @@
  * Never falls back to Math.random() for security reasons.
  */
 export function generateUUID(): string {
-  // Try Node.js crypto first
-  if (typeof require !== 'undefined') {
+  // Try Node.js crypto first - check for Node.js specific globals
+  if (typeof process !== 'undefined' && process.versions && process.versions.node) {
     try {
       const { randomUUID, randomBytes } = require('crypto');
       if (typeof randomUUID === 'function') {
@@ -79,8 +79,8 @@ export function isValidUUID(uuid: string): boolean {
  * Still uses secure random sources but produces shorter identifiers
  */
 export function generateShortUUID(): string {
-  // Try Node.js crypto first
-  if (typeof require !== 'undefined') {
+  // Try Node.js crypto first - check for Node.js specific globals
+  if (typeof process !== 'undefined' && process.versions && process.versions.node) {
     try {
       const { randomBytes } = require('crypto');
       const bytes = randomBytes(4);

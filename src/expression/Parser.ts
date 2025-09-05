@@ -125,7 +125,7 @@ export class Parser {
         }
       }
       if (!matched) {
-        throw new TokenizationError(`Invalid dice expression syntax`, position, expr);
+        throw new TokenizationError(`Invalid dice expression syntax at position ${position}: '${expr}'`, position, expr);
       }
     }
 
