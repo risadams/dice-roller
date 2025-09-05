@@ -3,7 +3,31 @@
  * @module DiceSession
  */
 
-import { randomUUID } from 'crypto';
+// Cross-platform UUID generation
+function generateUUID(): string {
+  // Try Node.js crypto first
+  if (typeof require !== 'undefined') {
+    try {
+      const { randomUUID } = require('crypto');
+      return randomUUID();
+    } catch (error) {
+      // Fall through to manual implementation
+    }
+  }
+  
+  // Browser/fallback implementation
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  
+  // Manual UUID v4 implementation as fallback
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 import { 
   SessionId, 
   RollId, 
@@ -60,7 +84,7 @@ export class DiceSession {
    * @param metadata Optional session metadata
    */
   constructor(config: SessionConfig = {}, metadata?: Partial<SessionMetadata>) {
-    this._id = randomUUID();
+    this._id = generateUUID();
     this._config = { ...DEFAULT_CONFIG, ...config };
     
     const now = new Date();
@@ -149,7 +173,7 @@ export class DiceSession {
       this._saveStateForUndo();
     }
 
-    const rollId = randomUUID();
+    const rollId = generateUUID();
     const now = new Date();
     
     const entry: RollHistoryEntry = {
@@ -433,7 +457,7 @@ export class DiceSession {
         // Regenerate IDs to avoid conflicts
         const newEntry: RollHistoryEntry = {
           ...entry,
-          id: randomUUID(),
+          id: generateUUID(),
           index: this._rollCounter++
         };
 

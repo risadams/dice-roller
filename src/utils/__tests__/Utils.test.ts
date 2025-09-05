@@ -214,8 +214,8 @@ describe('Utils Module', () => {
 
     test('validateThreshold should validate threshold range', () => {
       expect(() => DiceValidation.validateThreshold(3, 6)).not.toThrow();
-      expect(() => DiceValidation.validateThreshold(0, 6)).toThrow('Threshold must be an integer between 1 and 6');
-      expect(() => DiceValidation.validateThreshold(7, 6)).toThrow('Threshold must be an integer between 1 and 6');
+      expect(() => DiceValidation.validateThreshold(0, 6)).toThrow('Threshold 0 must be between 1 and 6');
+      expect(() => DiceValidation.validateThreshold(7, 6)).toThrow('Threshold 7 must be between 1 and 6');
     });
 
     test('validateExplosionLimit should validate explosion limits', () => {

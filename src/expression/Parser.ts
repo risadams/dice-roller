@@ -92,23 +92,41 @@ export class Parser {
       return [];
     }
 
-    // Enhanced regex to handle all dice notation patterns
-    // Covers: dice (d6, 3d20), rerolls (r1, ro<2, rr>=3), conditionals (>5, <=10)
-    // operators (+, -, *, /), parentheses, and constants
-    const tokenRegex = /(\d*d\d+(?:r(?:r|o)?(?:<=|>=|[<>=])?\d+|[<>=]+\d+)?|[+\-*/()]|(?:<=|>=|==|[<>=])|\d+)/g;
-    const matches = expression.match(tokenRegex);
-    
-    if (!matches || matches.join('') !== expression) {
-      throw new TokenizationError(`Invalid dice expression syntax`, 0, expression);
-    }
+    // Define named regex patterns for each token type
+    const tokenPatterns: { type: string; regex: RegExp }[] = [
+      // Conditional dice: e.g., 3d6>4, 2d8<=5, 4d10>=7 (must come before plain dice)
+      { type: 'conditional', regex: /^\d*d\d+(?:<=|>=|==|<>|[<>=])\d+/ },
+      // Dice notation: e.g., 3d6, d20, 2d8r1, 4d6ro<2, 2d10rr>=3
+      { type: 'dice', regex: /^\d*d\d+(?:r(?:r|o)?(?:<=|>=|[<>=])?\d+)?/ },
+      // Operators: +, -, *, /
+      { type: 'operator', regex: /^[+\-*/]/ },
+      // Parentheses: ( or )
+      { type: 'parenthesis', regex: /^[()]/ },
+      // Number: e.g., 42
+      { type: 'number', regex: /^\d+/ },
+    ];
 
     const tokens: ParsedToken[] = [];
     let position = 0;
-    
-    for (const match of matches) {
-      const token = this.createToken(match, position);
-      tokens.push(token);
-      position += match.length;
+    let expr = expression;
+
+    while (expr.length > 0) {
+      let matched = false;
+      for (const { type, regex } of tokenPatterns) {
+        const match = expr.match(regex);
+        if (match) {
+          const value = match[0];
+          const token = this.createToken(value, position);
+          tokens.push(token);
+          position += value.length;
+          expr = expr.slice(value.length);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        throw new TokenizationError(`Invalid dice expression syntax`, position, expr);
+      }
     }
 
     return tokens;
@@ -119,7 +137,10 @@ export class Parser {
    */
   private createToken(match: string, position: number): ParsedToken {
     // Check token type and create appropriate token
-    if (match.match(/^\d*d\d+/)) {
+    if (match.match(/^\d*d\d+(?:<=|>=|==|[<>=])\d+$/)) {
+      // Conditional dice like "3d6>4"
+      return this.createConditionalDiceToken(match, position);
+    } else if (match.match(/^\d*d\d+/)) {
       return this.createDiceToken(match, position);
     } else if (match.match(/^[+\-*/]$/)) {
       return {
@@ -157,6 +178,19 @@ export class Parser {
         length: match.length,
         numericValue: value
       } as NumberToken;
+    } else if (match.match(/^(<=|>=|==|[<>=])\d+$/)) {
+      const opMatch = match.match(/^(<=|>=|==|[<>=])(\d+)$/);
+      if (!opMatch) {
+        throw new TokenizationError(`Invalid conditional syntax: ${match}`, position, match);
+      }
+      return {
+        type: 'conditional',
+        value: match,
+        position,
+        length: match.length,
+        operator: opMatch[1] as ConditionalOperator,
+        threshold: parseInt(opMatch[2], 10)
+      } as ConditionalToken;
     } else if (match.match(/^(<=|>=|==|[<>=])$/)) {
       return {
         type: 'conditional',
@@ -250,6 +284,41 @@ export class Parser {
     
     // If we get here, it's an unrecognized modifier
     throw new TokenizationError(`Unrecognized dice modifier: ${remaining}`, position, match);
+  }
+
+  /**
+   * Create a conditional dice token (e.g., "3d6>4")
+   */
+  private createConditionalDiceToken(match: string, position: number): ConditionalToken {
+    const conditionalMatch = match.match(/^(\d*)d(\d+)(<=|>=|==|<>|[<>=])(\d+)$/);
+    if (!conditionalMatch) {
+      throw new TokenizationError(`Invalid conditional dice notation: ${match}`, position, match);
+    }
+
+    const count = conditionalMatch[1] === '' ? 1 : parseInt(conditionalMatch[1], 10);
+    const sides = parseInt(conditionalMatch[2], 10);
+    const operator = conditionalMatch[3];
+    const threshold = parseInt(conditionalMatch[4], 10);
+
+    // Check for invalid operators
+    if (operator === '<>') {
+      throw new TokenizationError(`Invalid conditional operator: ${operator}`, position, match);
+    }
+
+    if (isNaN(count) || isNaN(sides) || isNaN(threshold) || count <= 0 || sides <= 0) {
+      throw new TokenizationError(`Invalid conditional dice notation: ${match}`, position, match);
+    }
+
+    return {
+      type: 'conditional',
+      value: match,
+      position,
+      length: match.length,
+      operator: operator as ConditionalOperator,
+      threshold,
+      count,
+      sides
+    } as ConditionalToken & { count: number; sides: number };
   }
 
   /**

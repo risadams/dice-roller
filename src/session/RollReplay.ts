@@ -4,7 +4,12 @@
  */
 
 import { DiceSession } from './DiceSession';
-import { RollHistoryEntry, RollId } from './SessionTypes';
+import { 
+  SessionId, 
+  RollId, 
+  RollHistoryEntry
+} from './SessionTypes';
+import { SeededRNG } from '../utils/RandomUtils';
 import { DiceResult } from '../utils';
 
 /**
@@ -52,12 +57,13 @@ export interface ReplayOptions {
 
 /**
  * Seeded random number generator for deterministic replay
+ * @deprecated Use SeededRNG from RandomUtils instead
  */
 export class SeededRandom {
-  private seed: number;
+  private rng: SeededRNG;
 
   constructor(seed: number) {
-    this.seed = seed;
+    this.rng = new SeededRNG(seed);
   }
 
   /**
@@ -65,10 +71,7 @@ export class SeededRandom {
    * @returns Random number between 0 and 1
    */
   public random(): number {
-    // Simple Linear Congruential Generator (LCG)
-    // Note: For production use, consider a more robust PRNG
-    this.seed = (this.seed * 1664525 + 1013904223) % (2 ** 32);
-    return this.seed / (2 ** 32);
+    return this.rng.next();
   }
 
   /**
@@ -77,7 +80,7 @@ export class SeededRandom {
    */
   public reset(newSeed?: number): void {
     if (newSeed !== undefined) {
-      this.seed = newSeed;
+      this.rng.setSeed(newSeed);
     }
   }
 }

@@ -8,6 +8,8 @@ import { ArrayUtils } from './ArrayUtils';
 import { StringUtils } from './StringUtils';
 import { ConsoleUtils } from './ConsoleUtils';
 import { TestUtils } from './TestUtils';
+import { ValidationHelpers } from '../validation/ValidationHelpers';
+import { SeededRNG } from './RandomUtils';
 
 // Export the utility classes
 export { NumberUtils } from './NumberUtils';
@@ -15,6 +17,7 @@ export { ArrayUtils } from './ArrayUtils';
 export { StringUtils } from './StringUtils';
 export { ConsoleUtils } from './ConsoleUtils';
 export { TestUtils } from './TestUtils';
+export { SeededRNG } from './RandomUtils';
 
 // Re-export commonly used utilities for convenience
 export const {
@@ -200,9 +203,7 @@ export const DiceValidation = {
    * Validates threshold is within valid range for dice
    */
   validateThreshold(threshold: number, sides: number): void {
-    if (!Number.isInteger(threshold) || threshold < 1 || threshold > sides) {
-      throw new Error(`Threshold must be an integer between 1 and ${sides}`);
-    }
+    ValidationHelpers.validateThreshold(threshold, sides);
   },
 
   /**
