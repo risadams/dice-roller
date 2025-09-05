@@ -34,14 +34,21 @@ export class VersionCommand extends BaseCommand {
   name = 'version';
   aliases = ['--version', '-V'];
 
-  private version = '1.1.2';
+  private getVersion(): string {
+    try {
+      const packageJson = require('../../../package.json');
+      return packageJson.version;
+    } catch (error) {
+      return 'unknown';
+    }
+  }
 
   validate(args: string[]): void {
     // Version command doesn't need validation
   }
 
   execute(args: string[], flags: ParsedFlags): void {
-    OutputFormatter.formatVersion(this.version);
+    OutputFormatter.formatVersion(this.getVersion());
   }
 
   getHelp(): string {

@@ -2,6 +2,10 @@
 
 A sophisticated TypeScript dice rolling library for tabletop RPGs, games, and any application requiring elegant dice mechanics.
 
+> **🚧 BETA VERSION 2.0.0-beta**
+>
+> This is a major architectural refactor with significant improvements. While fully functional, this beta version includes breaking changes from v1.x.
+
 ## ✨ Features
 
 - **🎲 Simple dice rolling** (d4, d6, d8, d10, d12, d20, d100)

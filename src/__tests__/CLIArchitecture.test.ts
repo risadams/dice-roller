@@ -151,11 +151,15 @@ describe('CLI Architecture', () => {
     test('should handle version command', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
       
+      // Read expected version from package.json
+      const packageJson = require('../../package.json');
+      const expectedVersion = packageJson.version;
+      
       expect(() => {
         commandHandler.execute(['version']);
       }).not.toThrow();
       
-      expect(consoleSpy).toHaveBeenCalledWith('Dice Roller v1.1.2');
+      expect(consoleSpy).toHaveBeenCalledWith(`Dice Roller v${expectedVersion}`);
       consoleSpy.mockRestore();
     });
   });
