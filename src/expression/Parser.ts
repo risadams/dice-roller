@@ -62,8 +62,8 @@ export class Parser {
       throw new ParseError(`Expression too long (maximum ${Parser.config.MAX_EXPRESSION_LENGTH} characters)`, 0);
     }
 
-    // Clean and tokenize the expression
-    const cleanExpression = expression.replace(/\s/g, '').toLowerCase();
+    // Clean the expression (remove spaces but preserve case)
+    const cleanExpression = expression.replace(/\s/g, '');
     const tokens = this.tokenize(cleanExpression);
     
     if (tokens.length === 0) {
@@ -92,12 +92,12 @@ export class Parser {
       return [];
     }
 
-    // Define named regex patterns for each token type
+    // Define named regex patterns for each token type (case-insensitive for dice notation)
     const tokenPatterns: { type: string; regex: RegExp }[] = [
       // Conditional dice: e.g., 3d6>4, 2d8<=5, 4d10>=7 (must come before plain dice)
-      { type: 'conditional', regex: /^\d*d\d+(?:<=|>=|==|<>|[<>=])\d+/ },
+      { type: 'conditional', regex: /^\d*[dD]\d+(?:<=|>=|==|<>|[<>=])\d+/ },
       // Dice notation: e.g., 3d6, d20, 2d8r1, 4d6ro<2, 2d10rr>=3
-      { type: 'dice', regex: /^\d*d\d+(?:r(?:r|o)?(?:<=|>=|[<>=])?\d+)?/ },
+      { type: 'dice', regex: /^\d*[dD]\d+(?:r(?:r|o)?(?:<=|>=|[<>=])?\d+)?/ },
       // Operators: +, -, *, /
       { type: 'operator', regex: /^[+\-*/]/ },
       // Parentheses: ( or )
@@ -137,10 +137,10 @@ export class Parser {
    */
   private createToken(match: string, position: number): ParsedToken {
     // Check token type and create appropriate token
-    if (match.match(/^\d*d\d+(?:<=|>=|==|[<>=])\d+$/)) {
-      // Conditional dice like "3d6>4"
+    if (match.match(/^\d*[dD]\d+(?:<=|>=|==|[<>=])\d+$/)) {
+      // Conditional dice like "3d6>4" or "3D6>4"
       return this.createConditionalDiceToken(match, position);
-    } else if (match.match(/^\d*d\d+/)) {
+    } else if (match.match(/^\d*[dD]\d+/)) {
       return this.createDiceToken(match, position);
     } else if (match.match(/^[+\-*/]$/)) {
       return {
@@ -209,8 +209,8 @@ export class Parser {
    * Create a dice token with proper parsing of modifiers
    */
   private createDiceToken(match: string, position: number): DiceToken | (ConditionalToken & { count: number; sides: number }) | (RerollToken & { count: number; sides: number }) {
-    // Extract basic dice notation first
-    const diceMatch = match.match(/^(\d*)d(\d+)/);
+    // Extract basic dice notation first (case-insensitive)
+    const diceMatch = match.match(/^(\d*)[dD](\d+)/);
     if (!diceMatch) {
       throw new TokenizationError(`Invalid dice notation: ${match}`, position, match);
     }
@@ -290,7 +290,7 @@ export class Parser {
    * Create a conditional dice token (e.g., "3d6>4")
    */
   private createConditionalDiceToken(match: string, position: number): ConditionalToken {
-    const conditionalMatch = match.match(/^(\d*)d(\d+)(<=|>=|==|<>|[<>=])(\d+)$/);
+    const conditionalMatch = match.match(/^(\d*)[dD](\d+)(<=|>=|==|<>|[<>=])(\d+)$/);
     if (!conditionalMatch) {
       throw new TokenizationError(`Invalid conditional dice notation: ${match}`, position, match);
     }

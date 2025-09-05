@@ -46,6 +46,21 @@ describe('Expression System - Parser', () => {
       expect(tokens[0].value).toBe('4d6>3');
     });
 
+    it('should handle uppercase dice notation', () => {
+      const tokensUpper = parser.tokenize('3D6+2D8');
+      expect(tokensUpper).toHaveLength(3);
+      expect(tokensUpper[0].type).toBe('dice');
+      expect(tokensUpper[0].value).toBe('3D6');
+      expect(tokensUpper[2].type).toBe('dice');
+      expect(tokensUpper[2].value).toBe('2D8');
+      
+      // Should also work with conditional dice
+      const condTokens = parser.tokenize('4D6>3');
+      expect(condTokens).toHaveLength(1);
+      expect(condTokens[0].type).toBe('conditional');
+      expect(condTokens[0].value).toBe('4D6>3');
+    });
+
     it('should handle empty input', () => {
       const tokens = parser.tokenize('');
       expect(tokens).toHaveLength(0);

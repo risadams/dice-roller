@@ -1,12 +1,12 @@
 import { DiceRoller } from '../core/DiceRoller';
 import { StepDiceResult } from '../types/DiceTypes';
 import { ValidationHelpers } from '../validation/ValidationHelpers';
+import { DIE_PROGRESSION } from '../types/DiceConstants';
 
 /**
  * Handles Savage Worlds step dice mechanics
  */
 export class StepDice {
-  private static readonly DIE_PROGRESSION = [4, 6, 8, 10, 12];
   private roller: DiceRoller;
 
   constructor(roller: DiceRoller) {
@@ -46,15 +46,15 @@ export class StepDice {
         finalDie: 4,
         modifier: targetIndex // Negative modifier
       };
-    } else if (targetIndex >= StepDice.DIE_PROGRESSION.length) {
+    } else if (targetIndex >= DIE_PROGRESSION.length) {
       // Stepped above d12, becomes d12 + modifier
       return {
         finalDie: 12,
-        modifier: targetIndex - (StepDice.DIE_PROGRESSION.length - 1)
+        modifier: targetIndex - (DIE_PROGRESSION.length - 1)
       };
     } else {
       return {
-        finalDie: StepDice.DIE_PROGRESSION[targetIndex],
+        finalDie: DIE_PROGRESSION[targetIndex],
         modifier: 0
       };
     }

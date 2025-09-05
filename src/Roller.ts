@@ -2,6 +2,7 @@ import { Die } from './Die';
 import { DiceExpression } from './DiceExpression';
 import { CustomDie } from './CustomDie';
 import { ValidationHelpers } from './validation/ValidationHelpers';
+import { DIE_PROGRESSION } from './types/DiceConstants';
 
 /**
  * Main dice rolling engine that handles various dice operations
@@ -448,11 +449,6 @@ export class Roller {
   }
 
   /**
-   * Standard Savage Worlds die progression
-   */
-  private static readonly DIE_PROGRESSION = [4, 6, 8, 10, 12];
-
-  /**
    * Calculates final die and modifier after applying steps
    */
   private calculateSteppedDie(baseIndex: number, steps: number): { finalDie: number; modifier: number } {
@@ -464,15 +460,15 @@ export class Roller {
         finalDie: 4,
         modifier: targetIndex // Negative modifier
       };
-    } else if (targetIndex >= Roller.DIE_PROGRESSION.length) {
+    } else if (targetIndex >= DIE_PROGRESSION.length) {
       // Stepped above d12, becomes d12 + modifier
       return {
         finalDie: 12,
-        modifier: targetIndex - (Roller.DIE_PROGRESSION.length - 1)
+        modifier: targetIndex - (DIE_PROGRESSION.length - 1)
       };
     } else {
       return {
-        finalDie: Roller.DIE_PROGRESSION[targetIndex],
+        finalDie: DIE_PROGRESSION[targetIndex],
         modifier: 0
       };
     }

@@ -129,8 +129,8 @@ export class NumberUtils {
   /**
    * Calculates percentage of a value relative to a total
    */
-  static percentage(value: number, total: number): number {
+  static percentage(value: number, total: number, precision: number = 2): number {
     if (total === 0) return 0;
-    return this.roundToDecimal((value / total) * 100);
+    return this.roundToDecimal((value / total) * 100, precision);
   }
 }
