@@ -4,6 +4,8 @@ import { ExpressionContext } from './ExpressionContext';
 import { ExplanationEngine, ExplanationOptions } from './ExplanationEngine';
 import {
   ExpressionNode,
+  BinaryOperationNode,
+  ParenthesesNode,
   EvaluationResult,
   DetailedEvaluationResult,
   EvaluationExplanation,
@@ -354,20 +356,37 @@ export class ExpressionSystem {
   }
 
   /**
+   * Type guard for binary operation nodes
+   */
+  private isBinaryOperationNode(node: ExpressionNode): node is BinaryOperationNode {
+    return node.type === 'binary_operation';
+  }
+
+  /**
+   * Type guard for parentheses nodes
+   */
+  private isParenthesesNode(node: ExpressionNode): node is ParenthesesNode {
+    return node.type === 'parentheses';
+  }
+
+  /**
    * Count nodes in AST (for explanation purposes)
    */
   private countASTNodes(node: ExpressionNode): number {
     let count = 1;
     
-    // Recursively count child nodes
-    if ('left' in node && node.left) {
-      count += this.countASTNodes(node.left);
-    }
-    if ('right' in node && node.right) {
-      count += this.countASTNodes(node.right);
-    }
-    if ('expression' in node && node.expression) {
-      count += this.countASTNodes(node.expression);
+    // Recursively count child nodes using type guards
+    if (this.isBinaryOperationNode(node)) {
+      if (node.left) {
+        count += this.countASTNodes(node.left);
+      }
+      if (node.right) {
+        count += this.countASTNodes(node.right);
+      }
+    } else if (this.isParenthesesNode(node)) {
+      if (node.expression) {
+        count += this.countASTNodes(node.expression);
+      }
     }
     
     return count;
