@@ -453,17 +453,6 @@ export class Roller {
   private static readonly DIE_PROGRESSION = [4, 6, 8, 10, 12];
 
   /**
-   * Validates a base die for step dice system
-   */
-  private validateStepDie(baseDie: number): number {
-    const dieIndex = Roller.DIE_PROGRESSION.indexOf(baseDie);
-    if (dieIndex === -1) {
-      throw new Error(`Invalid base die: d${baseDie}. Must be one of: d4, d6, d8, d10, d12`);
-    }
-    return dieIndex;
-  }
-
-  /**
    * Calculates final die and modifier after applying steps
    */
   private calculateSteppedDie(baseIndex: number, steps: number): { finalDie: number; modifier: number } {
@@ -528,7 +517,7 @@ export class Roller {
     aced: boolean;
     aceRolls?: number[];
   } {
-    const baseIndex = this.validateStepDie(baseDie);
+    const baseIndex = ValidationHelpers.validateStepDie(baseDie);
     const { finalDie, modifier } = this.calculateSteppedDie(baseIndex, steps);
     
     const rollResult = this.rollWithAces(finalDie);

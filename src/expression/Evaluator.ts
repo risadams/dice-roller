@@ -217,6 +217,9 @@ export class Evaluator {
       case '*':
         return left * right;
       case '/':
+        if (right === 0) {
+          return 0; // Graceful handling of division by zero
+        }
         return Math.floor(left / right);
       default:
         throw new EvaluationError(`Unknown operator: ${node.operator}`, node);

@@ -65,4 +65,17 @@ export class ValidationHelpers {
       throw new Error('Maximum explosions must be non-negative');
     }
   }
+
+  /**
+   * Validates a base die for step dice system and returns its index
+   */
+  static validateStepDie(baseDie: number): number {
+    // Standard step dice progression
+    const DIE_PROGRESSION = [4, 6, 8, 10, 12];
+    const dieIndex = DIE_PROGRESSION.indexOf(baseDie);
+    if (dieIndex === -1) {
+      throw new Error(`Invalid base die: d${baseDie}. Must be one of: d4, d6, d8, d10, d12`);
+    }
+    return dieIndex;
+  }
 }

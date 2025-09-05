@@ -155,7 +155,8 @@ export class DiceExpression {
    * Create detailed explanation with dice roll information
    */
   private createDetailedExplanation(expression: string, ast: any, result: number): EvaluationExplanation {
-    const tokens = expression.match(/(\d*d\d+|[+\-*/()]|\d+)/g) || [expression];
+    // Use a more secure tokenization approach to avoid ReDoS
+    const tokens = this.safeTokenizeExpression(expression);
     
     const steps: EvaluationStep[] = [];
     let stepCounter = 0;
@@ -299,6 +300,45 @@ export class DiceExpression {
       steps,
       finalResult: result
     };
+  }
+
+  /**
+   * Safe tokenization to avoid ReDoS vulnerabilities
+   */
+  private safeTokenizeExpression(expression: string): string[] {
+    const tokens: string[] = [];
+    let current = '';
+    let i = 0;
+    
+    while (i < expression.length) {
+      const char = expression[i];
+      
+      if (/[+\-*/()]/.test(char)) {
+        if (current) {
+          tokens.push(current);
+          current = '';
+        }
+        tokens.push(char);
+      } else if (/\d/.test(char)) {
+        current += char;
+      } else if (char === 'd' && current) {
+        current += char;
+      } else if (char === ' ') {
+        if (current) {
+          tokens.push(current);
+          current = '';
+        }
+      } else {
+        current += char;
+      }
+      i++;
+    }
+    
+    if (current) {
+      tokens.push(current);
+    }
+    
+    return tokens.length > 0 ? tokens : [expression];
   }
 
   /**

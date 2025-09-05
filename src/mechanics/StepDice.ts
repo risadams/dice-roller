@@ -1,5 +1,6 @@
 import { DiceRoller } from '../core/DiceRoller';
 import { StepDiceResult } from '../types/DiceTypes';
+import { ValidationHelpers } from '../validation/ValidationHelpers';
 
 /**
  * Handles Savage Worlds step dice mechanics
@@ -17,7 +18,7 @@ export class StepDice {
    * Dice "step up" or "step down" in size: d4 -> d6 -> d8 -> d10 -> d12 -> d12+1 -> d12+2, etc.
    */
   public roll(baseDie: number, steps: number): StepDiceResult {
-    const baseIndex = this.validateStepDie(baseDie);
+    const baseIndex = ValidationHelpers.validateStepDie(baseDie);
     const { finalDie, modifier } = this.calculateSteppedDie(baseIndex, steps);
     
     const rollResult = this.rollWithAces(finalDie);
@@ -31,17 +32,6 @@ export class StepDice {
       aced: rollResult.aced,
       aceRolls: rollResult.aceRolls
     };
-  }
-
-  /**
-   * Validates a base die for step dice system
-   */
-  private validateStepDie(baseDie: number): number {
-    const dieIndex = StepDice.DIE_PROGRESSION.indexOf(baseDie);
-    if (dieIndex === -1) {
-      throw new Error(`Invalid base die: d${baseDie}. Must be one of: d4, d6, d8, d10, d12`);
-    }
-    return dieIndex;
   }
 
   /**

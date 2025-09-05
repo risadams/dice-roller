@@ -2,6 +2,8 @@
  * Utility functions for testing, including mock helpers
  */
 
+import { SeededRNG } from './RandomUtils';
+
 export class TestUtils {
   /**
    * Creates a mock random function that returns values in sequence
@@ -100,13 +102,8 @@ export class TestUtils {
    * Creates a seeded random number generator for consistent test results
    */
   static createSeededRandom(seed: number): () => number {
-    let state = seed;
-    
-    return () => {
-      // Linear congruential generator
-      state = (state * 1664525 + 1013904223) % (2 ** 32);
-      return state / (2 ** 32);
-    };
+    const rng = new SeededRNG(seed);
+    return () => rng.next();
   }
 
   /**
