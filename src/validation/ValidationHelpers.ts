@@ -72,7 +72,7 @@ export class ValidationHelpers {
    * Validates a base die for step dice system and returns its index
    */
   static validateStepDie(baseDie: number): number {
-    const dieIndex = DIE_PROGRESSION.indexOf(baseDie);
+    const dieIndex = DIE_PROGRESSION.indexOf(baseDie as any);
     if (dieIndex === -1) {
       throw new Error(`Invalid base die: d${baseDie}. Must be one of: d4, d6, d8, d10, d12`);
     }

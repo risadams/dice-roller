@@ -187,7 +187,7 @@ export class ConsoleUtils {
    */
   static progress(current: number, total: number, label?: string): void {
     // Only show progress bar if stdout is a TTY (interactive terminal)
-    if (!process.stdout.isTTY) {
+    if (!process.stdout || !process.stdout.isTTY) {
       return;
     }
 
