@@ -12,7 +12,8 @@ A sophisticated TypeScript dice rolling library for tabletop RPGs, games, and an
 - **📝 Powerful expression parser** with conditionals, rerolls, and complex math
 - **🛠️ Custom dice** with user-defined values (numeric and non-numeric)
 - **📊 Statistical analysis** and probability tools
-- **🖥️ Command-line interface** with comprehensive CLI commands
+- **�️ Session management** with roll history, statistics, and replay capabilities
+- **�🖥️ Command-line interface** with comprehensive CLI commands
 - **🏗️ Modular architecture** with clean, maintainable code
 - **🧪 100% test coverage** with comprehensive test suite
 - **📘 TypeScript support** with full type definitions

@@ -19,7 +19,7 @@ export class DemoCommand extends BaseCommand {
       const roller = new Roller();
       OutputFormatter.formatDemo(roller);
     } catch (error) {
-      this.handleError(error instanceof Error ? error : new Error('Unknown error'), 'demo');
+      this.handleAnyError(error, 'demo');
     }
   }
 

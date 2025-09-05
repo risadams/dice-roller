@@ -44,7 +44,7 @@ export class PenetratingCommand extends BaseCommand {
 
       OutputFormatter.formatDiceRoll(output, flags.isVerbose, flags.isExplain);
     } catch (error) {
-      this.handleError(error instanceof Error ? error : new Error('Unknown error'), 'penetrating');
+      this.handleAnyError(error, 'penetrating');
     }
   }
 

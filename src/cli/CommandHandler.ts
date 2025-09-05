@@ -12,6 +12,12 @@ import { CustomDiceCommand } from './commands/CustomDiceCommand';
 import { StatsCommand } from './commands/StatsCommand';
 import { DemoCommand } from './commands/DemoCommand';
 import { HelpCommand, VersionCommand } from './commands/UtilityCommands';
+import { 
+  SessionStartCommand, 
+  SessionStatusCommand, 
+  SessionSaveCommand, 
+  SessionLoadCommand 
+} from './commands/SessionCommands';
 
 /**
  * Main command handler that routes CLI commands to appropriate handlers
@@ -40,7 +46,11 @@ export class CommandHandler {
       new StatsCommand(),
       new DemoCommand(),
       new HelpCommand(),
-      new VersionCommand()
+      new VersionCommand(),
+      new SessionStartCommand(),
+      new SessionStatusCommand(),
+      new SessionSaveCommand(),
+      new SessionLoadCommand()
     ];
 
     for (const command of commandInstances) {

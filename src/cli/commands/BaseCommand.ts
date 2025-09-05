@@ -48,6 +48,13 @@ export abstract class BaseCommand implements ICommand {
     console.error(`❌ Error in ${commandName}: ${error.message}`);
     process.exit(1);
   }
+
+  /**
+   * Helper method to safely handle any error and convert to Error type
+   */
+  protected handleAnyError(error: unknown, commandName: string): void {
+    this.handleError(error instanceof Error ? error : new Error('Unknown error'), commandName);
+  }
   
   /**
    * Helper method to validate minimum argument count

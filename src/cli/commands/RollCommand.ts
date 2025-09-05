@@ -27,7 +27,7 @@ export class RollCommand extends BaseCommand {
         this.rollExpression(dice, flags);
       }
     } catch (error) {
-      this.handleError(error instanceof Error ? error : new Error('Unknown error'), 'roll');
+      this.handleAnyError(error, 'roll');
     }
   }
 

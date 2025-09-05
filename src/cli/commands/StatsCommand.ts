@@ -22,7 +22,7 @@ export class StatsCommand extends BaseCommand {
       const stats = this.calculateStatistics(expression);
       OutputFormatter.formatStatistics(stats, expression);
     } catch (error) {
-      this.handleError(error instanceof Error ? error : new Error('Unknown error'), 'stats');
+      this.handleAnyError(error, 'stats');
     }
   }
 
